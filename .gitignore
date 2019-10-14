@@ -1,4 +1,9 @@
 *.o
-microrl_test
-tags
+*.d
+.dep
+.obj
 *.swp
+*.pyc
+tags
+tmp
+mrl_test
