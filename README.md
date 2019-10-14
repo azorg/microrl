@@ -99,29 +99,29 @@ Example of code:
 //-----------------------------------------------------------------------------
 int main(int argc, char ** argv)
 {
-	mrl_t mrl; // MicroRL object
-	
+  mrl_t mrl; // MicroRL object
+  
   // call init with print callback
-	mrl_init(&mrl, print);
+  mrl_init(&mrl, print);
 
   // set callback for execute
-	mrl_set_execute_cb(&mrl, execute);
+  mrl_set_execute_cb(&mrl, execute);
 
-	// set callback for completion (optionally)
-	mrl_set_complete_cb(&mrl, complet);
+  // set callback for completion (optionally)
+  mrl_set_complete_cb(&mrl, complet);
 
-	// set callback for Ctrl+C handling (optionally)
-	mrl_set_sigint_cb(&mrl, sigint);
-	
-	while (1)
+  // set callback for Ctrl+C handling (optionally)
+  mrl_set_sigint_cb(&mrl, sigint);
+  
+  while (1)
   {
-		// put received char from stdin to MicroRL lib
-		char ch = get_char();
-		int rv = mrl_insert_char(&mrl, ch);
+    // put received char from stdin to MicroRL lib
+    char ch = get_char();
+    int rv = mrl_insert_char(&mrl, ch);
     if (rv) break; // exit if CTRL+D pressed
-	}
+  }
 
-	return 0;
+  return 0;
 }
 //-----------------------------------------------------------------------------
 ```
