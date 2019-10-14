@@ -28,6 +28,7 @@ history and completion feature.
 	 - Ctrl+N (like cursor arrow down)
 	 - Ctrl+R (retype prompt and partial command)
 	 - Ctrl+C (call 'sigint' callback, only for embedded system)
+   - Ctrl+D (return non zero key code)   
 
 	** history
 	 - Static ring buffer history for memory saving. Number of commands
@@ -37,7 +38,7 @@ history and completion feature.
 	** completion
 	 - via completion callback
 
-## 3. SRC structure
+## 3. Source code structure
 
 ```
 src/             - library source
@@ -98,7 +99,7 @@ Example of code:
 //-----------------------------------------------------------------------------
 int main(int argc, char ** argv)
 {
-	microrl_t mrl; // MicroRL object
+	mrl_t mrl; // MicroRL object
 	
   // call init with print callback
 	mrl_init(&mrl, print);
@@ -117,7 +118,7 @@ int main(int argc, char ** argv)
 		// put received char from stdin to MicroRL lib
 		char ch = get_char();
 		int rv = mrl_insert_char(&mrl, ch);
-    if (rv) break; // exit if CTRL+C pressed
+    if (rv) break; // exit if CTRL+D pressed
 	}
 
 	return 0;
