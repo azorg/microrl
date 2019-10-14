@@ -70,11 +70,11 @@ For embed lib to you project, you need to do few simple steps:
 
 For example on linux PC print callback may be:
 ```
-	// print callback for MicroRL library
-	void print(const char *str)
-	{
-		fprintf(stdout, "%s", str);
-	}
+// print callback for MicroRL library
+void print(const char *str)
+{
+  fprintf(stdout, "%s", str);
+}
 ```
 
 * c) Call 'mrl_set_execute_cb' with pointer to you routine, what will be
@@ -128,5 +128,5 @@ See example library usage in test folder.
 
 ## 5. License
 
-Licensed under the Apache License, Version 2.0 (the "LICENSE" and "NOTICE").
+Licensed under the Apache License, Version 2.0 (see "LICENSE" and "NOTICE").
 
