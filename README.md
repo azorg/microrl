@@ -28,7 +28,7 @@ history and completion feature.
 	 - Ctrl+N (like cursor arrow down)
 	 - Ctrl+R (retype prompt and partial command)
 	 - Ctrl+C (call 'sigint' callback, only for embedded system)
-   - Ctrl+D (return non zero key code)   
+	 - Ctrl+D (return non zero key code)   
 
 	** history
 	 - Static ring buffer history for memory saving. Number of commands
