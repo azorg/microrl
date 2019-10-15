@@ -7,17 +7,17 @@ OUT_NAME     := mrl_test
 #----------------------------------------------------------------------------
 #
 # 1-st way to select source files
-SRCS := mrl_test.c ../src/mrl.c
-HDRS := ../src/mrl.h ../src/mrl_conf.h ../src/mrl_defs.h
+SRCS := mrl_test.c ../mrl.c
+HDRS := ../mrl.h ../mrl_conf.h ../mrl_defs.h
 
 # 2-nd way to select source files
-#SRC_DIRS := . ../src
-#HDR_DIRS := . libs/include
+#SRC_DIRS := . ..
+#HDR_DIRS := . ..
 
 #----------------------------------------------------------------------------
-#INC_DIRS  := ../src
+#INC_DIRS  := ..
 #INC_FLAGS := 
-#DEFS      := -DMRL_DEBUG
+DEFS      := -DMRL_DEBUG
 OPTIM     := -Os -fomit-frame-pointer
 WARN      := -Wall
 

@@ -20,15 +20,19 @@
 //-----------------------------------------------------------------------------
 // Command token number, define max token it command line, if number of token
 // typed in command line exceed this value, then prints message about it and
-// command line not to be parced and 'execute' callback will not calls.
+// command line not to be parsed and 'execute' callback will not calls.
 // Token is word separate by white space, for example 3 token line:
 // "=> set mode test"
 #define MRL_COMMAND_TOKEN_NMB 8
 //-----------------------------------------------------------------------------
 // Define you prompt string here. You can use colors escape code,
 // for highlight you prompt (if you terminal supports color).
+// #define MRL_PROMPT_DEFAULT "\033[31m=> \033[0m" - red color
 // #define MRL_PROMPT_DEFAULT "\033[32m=> \033[0m" - green color
-#define MRL_PROMPT_DEFAULT "\033[32m=> \033[0m" // green color
+// #define MRL_PROMPT_DEFAULT "\033[33m=> \033[0m" - yellow color
+// #define MRL_PROMPT_DEFAULT "\033[34m=> \033[0m" - blue color
+// #define MRL_PROMPT_DEFAULT "\033[35m=> \033[0m" - magenta color
+#define MRL_PROMPT_DEFAULT "\033[34m=> \033[0m"
 //#define MRL_PROMPT_DEFAULT "=> " // default color
 //-----------------------------------------------------------------------------
 // Define prompt text (without ESC sequence, only text) prompt length,
@@ -45,44 +49,50 @@
 //-----------------------------------------------------------------------------
 // Define it, if you wanna use history. It s work's like bash history, and
 // set stored value to cmdline, if UP and DOWN key pressed. Using history add
-// memory consuming, depends from _RING_HISTORY_LEN parametr
+// memory consuming, depends from MRL_RING_HISTORY_LEN parametr
 #define MRL_USE_HISTORY
 //-----------------------------------------------------------------------------
 // History ring buffer length, define static buffer size.
 // For saving memory, each entered cmdline store to history in ring buffer,
 // so we can not say, how many line we can store, it depends from cmdline len,
-// but memory using more effective. We not prefer dinamic memory allocation
+// but memory using more effective. We not prefer dynamic memory allocation
 // for small and embedded devices. Overhead is 2 char on each saved line
-#define MRL_RING_HISTORY_LEN 128
+#define MRL_RING_HISTORY_LEN 80
 //-----------------------------------------------------------------------------
 // Enable Handling terminal ESC sequence. If disabling, then cursor arrow,
-// HOME, END, DEL will not work, use Ctrl+A(B,F,P,N,A,E,H,K,U,C) but
+// HOME, END, DELETE will not work (use Ctrl+A(B,F,P,N,A,E,H,K,U,C)) but
 // decrease code memory.
 #define MRL_USE_ESC_SEQ
 //-----------------------------------------------------------------------------
-// Use snprintf from you standard complier library, but it gives some overhead.
-// If not defined, use u16int_to_str() function, it's decrease size of of code.
+// Use snprintf() from standard compiler library, but it gives some overhead.
+// If not defined, use u16int_to_str() function, it's decrease size of code.
 // Try to build with and without, and compare total code size for tune library.
-#define MRL_USE_LIBC_STDIO
+//#define MRL_USE_LIBC_STDIO
 //-----------------------------------------------------------------------------
 // Enable 'interrupt signal' callback, if user press Ctrl+C
-#define MRL_USE_CTLR_C
+#define MRL_USE_CTRL_C
 //-----------------------------------------------------------------------------
 // Print prompt at 'microrl_init', if enable, prompt will print at startup,
 // otherwise first prompt will print after first press Enter in terminal
 // NOTE!: Enable it, if you call 'microrl_init' after your communication
-// subsystem already initialize and ready to print message
+// subsystem already initialise and ready to print message
 #define MRL_ENABLE_INIT_PROMPT
+//-----------------------------------------------------------------------------
+// Enable mrl_str2long() function as atoi()/atol() alternative for use
+// into command execution callback.
+// C-style string to long transformation (0xHHHH-hex, 0OOO-oct, 0bBBBB-bin)
+// - atoi()/atol() alternative for use into execute command callback.
+#define MRL_STR2LONG
 //-----------------------------------------------------------------------------
 // Selected new line symbol(s)
 #define MRL_ENDL_LF
 
-#if defined(MRL_ENDL_CR)
+#if defined(MRL_ENDL_LF)
+#  define MRL_ENDL "\n"
+#elif defined(MRL_ENDL_CR)
 #  define MRL_ENDL "\r"
 #elif defined(MRL_ENDL_CRLF)
 #  define MRL_ENDL "\r\n"
-#elif defined(MRL_ENDL_LF)
-#  define MRL_ENDL "\n"
 #elif defined(MRL_ENDL_LFCR)
 # define MRL_ENDL "\n\r"
 #else
@@ -90,8 +100,8 @@
 #endif
 //-----------------------------------------------------------------------------
 #if MRL_RING_HISTORY_LEN > 256
-#error "This history implementation (ring buffer with 1 byte iterator) "
-       "allow 256 byte buffer size maximum"
+#error "This history implementation (ring buffer with 1 byte iterator)."
+#error "Allow only 256 byte buffer size maximum."
 #endif
 //-----------------------------------------------------------------------------
 #endif // MRL_CONF_H
