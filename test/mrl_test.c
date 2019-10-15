@@ -10,6 +10,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h> 
 #include <stdio.h>
+#include <stdlib.h>
 #include "mrl.h"
 //-----------------------------------------------------------------------------
 // definition commands word
@@ -25,7 +26,7 @@
 #define _SCMD_MRL  "microrl"
 #define _SCMD_DEMO "demo"
 
-#define _NUM_OF_CMD 6
+#define _NUM_OF_CMD 7
 #define _NUM_OF_VER_SCMD 2
 
 // available  commands
@@ -42,8 +43,8 @@ char *compl_world[_NUM_OF_CMD + 1];
 #define _NAME_LEN 8
 char name[_NAME_LEN];
 
-// 'value' var for store long value
-long value;
+// 'value' var for store integer value
+int value;
 //-----------------------------------------------------------------------------
 // get char user pressed, no waiting Enter input
 static char get_char()
@@ -82,7 +83,7 @@ static void print_help()
   print("\tlist  - list all commands in tree\n\r");
   print("\tname [string] - print 'name' value if no 'string', set name "
         "value to 'string' if 'string' present\n\r");
-  print("\tvalue [value] - print or set long value\n\r");
+  print("\tvalue [value] - print or set integer value\n\r");
   print("\tlisp - dummy command for demonstation auto-completion, "
         "while inputed 'l+<TAB>'\n\r");
 }
@@ -119,16 +120,16 @@ static int execute(int argc, const char * const * argv)
     {
       if ((++i) < argc)
       { // if value preset
-#ifdef MRL_STR2LONG
-        value = mrl_str2long(argv[i], 0, 0);
+#ifdef MRL_STR2INT
+        value = mrl_str2int(argv[i], 0, 0);
 #else
-        value = atol(argv[i]);
+        value = atoi(argv[i]);
 #endif
       }
       else
       {
 	char str[80];
-	snprintf(str, sizeof(str) - 1, "%li", value);
+	snprintf(str, sizeof(str) - 1, "%i", value);
         print(str);
         print("\n\r");
       }

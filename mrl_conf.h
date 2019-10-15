@@ -78,11 +78,12 @@
 // subsystem already initialise and ready to print message
 #define MRL_ENABLE_INIT_PROMPT
 //-----------------------------------------------------------------------------
-// Enable mrl_str2long() function as atoi()/atol() alternative for use
-// into command execution callback.
-// C-style string to long transformation (0xHHHH-hex, 0OOO-oct, 0bBBBB-bin)
-// - atoi()/atol() alternative for use into execute command callback.
-#define MRL_STR2LONG
+// Enable mrl_str2int() function as atoi() alternative for use into command
+// execution callback (0xHHH, 0OOOO, 0bBBBB format supported)
+#define MRL_STR2INT
+//-----------------------------------------------------------------------------
+// Enable mrl_in2strt() - simple print integer value to string 
+#define MRL_INT2STR
 //-----------------------------------------------------------------------------
 // Selected new line symbol(s)
 #define MRL_ENDL_LF

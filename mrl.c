@@ -8,6 +8,7 @@
 #include "mrl_defs.h"
 //-----------------------------------------------------------------------------
 #include <string.h>
+#include <stdbool.h>
 #include <ctype.h>
 #include <stdlib.h>
 #ifdef MRL_USE_LIBC_STDIO
@@ -19,189 +20,95 @@
 #  define MRL_DBG(...) fprintf(stderr, "\033[31m");\
                        fprintf(stderr, __VA_ARGS__);\
                        fprintf(stderr, "\033[0m");
-#  define  MRL_DEBUG_HISTORY
 #endif // MRL_DEBUG
 //-----------------------------------------------------------------------------
 static char * const mrl_prompt_default = MRL_PROMPT_DEFAULT;
 //-----------------------------------------------------------------------------
-#ifdef MRL_USE_HISTORY
-#ifdef MRL_DEBUG_HISTORY
-//-----------------------------------------------------------------------------
-// print buffer content on screen
-static void mrl_print_hist(mrl_ring_history_t *self)
+INLINE void mrl_print_prompt(mrl_t *self)
 {
-  int i;
-  printf(MRL_ENDL);
-  for (i = 0; i < MRL_RING_HISTORY_LEN; i++)
-    printf("%c", i == self->begin ? 'b' : ' ');
-
-  printf(MRL_ENDL);
-  for (i = 0; i < MRL_RING_HISTORY_LEN; i++)
-  {
-    if (self->ring_buf[i] >= ' ')
-      printf("%c", self->ring_buf[i]);
-    else if (self->ring_buf[i] <= 9)
-      printf("%d", self->ring_buf[i]);
-    else
-      printf("|");
-  }
-
-  printf(MRL_ENDL);
-  for (i = 0; i < MRL_RING_HISTORY_LEN; i++)
-    printf("%c", i == self->end ? 'e' : ' ');
-
-  printf(MRL_ENDL);
-}
-#endif // MRL_DEBUG_HISTORY
-//-----------------------------------------------------------------------------
-// remove older message from ring buffer
-static void mrl_hist_erase_older(mrl_ring_history_t *self)
-{
-  int new_pos = self->begin + self->ring_buf[self->begin] + 1;
-  if (new_pos >= MRL_RING_HISTORY_LEN)
-    new_pos -= MRL_RING_HISTORY_LEN;
-  self->begin = new_pos;
+  self->print(self->prompt_str);
 }
 //-----------------------------------------------------------------------------
-// check space for new line, remove older while not space
-static bool mrl_hist_is_space_for_new(mrl_ring_history_t *self, int len)
+INLINE void mrl_terminal_backspace(mrl_t *self)
 {
-  if (self->ring_buf[self->begin] == 0)
-    return true;
-
-  if (self->end >= self->begin)
-  {
-    if (MRL_RING_HISTORY_LEN - self->end + self->begin - 1 > len)
-      return true;
-  }
-  else
-  {
-    if (self->begin - self->end - 1 > len)
-      return true;
-  }
-  return false;
+  self->print("\033[D \033[D");
 }
 //-----------------------------------------------------------------------------
-// put line to ring buffer
-static void mrl_hist_save_line(mrl_ring_history_t *self, char *line, int len)
+INLINE void mrl_terminal_newline(mrl_t *self)
 {
-  if (len > MRL_RING_HISTORY_LEN - 2)
+  self->print(MRL_ENDL);
+}
+//-----------------------------------------------------------------------------
+// set cursor at position from begin cmdline (after prompt) + offset
+static void mrl_terminal_move_cursor(mrl_t *self, int offset)
+{
+  char str[16];
+#ifdef MRL_USE_LIBC_STDIO 
+  if (offset > 0)
+    snprintf(str, sizeof(str) - 1, "\033[%dC", offset);
+  else if (offset < 0)
+    snprintf(str, sizeof(str) - 1, "\033[%dD", -offset);
+#else 
+  char *ptr = str;
+
+  *ptr++ = '\033';
+  *ptr++ = '[';
+  if (offset > 0)
+  { // "\033[nC"
+    ptr += mrl_int2str((unsigned int) offset, ptr);
+    *ptr++ = 'C';
+  }
+  else if (offset < 0)
+  { // "\033[nD"
+    ptr += mrl_int2str((unsigned int) -offset, ptr);
+    *ptr++ = 'D';
+  }
+  else // offset == 0
     return;
 
-  while (!mrl_hist_is_space_for_new(self, len))
-    mrl_hist_erase_older(self);
-  
-  // if it's first line
-  if (self->ring_buf[self->begin] == 0) 
-    self->ring_buf[self->begin] = len;
-  
-  // store line
-  if (len < MRL_RING_HISTORY_LEN - self->end - 1)
-    memcpy(self->ring_buf + self->end + 1, line, len);
-  else
-  {
-    int part_len = MRL_RING_HISTORY_LEN - self->end - 1;
-    memcpy(self->ring_buf + self->end + 1, line, part_len);
-    memcpy(self->ring_buf, line + part_len, len - part_len);
-  }
-
-  self->ring_buf[self->end] = len;
-  self->end = self->end + len + 1;
-
-  if (self->end >= MRL_RING_HISTORY_LEN)
-    self->end -= MRL_RING_HISTORY_LEN;
-
-  self->ring_buf[self->end] = 0;
-  self->cur = 0;
-
-#ifdef MRL_DEBUG_HISTORY
-  mrl_print_hist(self);
-#endif // MRL_DEBUG_HISTORY
+  *ptr = '\0';
+#endif  
+  self->print(str);
 }
 //-----------------------------------------------------------------------------
-// copy saved line to 'line' and return size of line
-static int mrl_hist_restore_line(mrl_ring_history_t *self, char *line, int dir)
+// set cursor to start position after prompt
+static void mrl_terminal_reset_cursor(mrl_t *self)
 {
-  int j, cnt = 0; // count history record  
-  int header = self->begin;
-  while (self->ring_buf[header])
-  {
-    header += self->ring_buf[header] + 1;
-    if (header >= MRL_RING_HISTORY_LEN)
-      header -= MRL_RING_HISTORY_LEN; 
-    cnt++;
-  }
+  char str[16];
+#ifdef MRL_USE_LIBC_STDIO
+  snprintf(str, sizeof(str), "\033[%dD\033[%dC",
+           MRL_COMMAND_LINE_LEN + MRL_PROMPT_LEN + 2, MRL_PROMPT_LEN);
+#else
+  char *ptr = str;
 
-  if (dir == MRL_HIST_UP)
-  {
-    if (cnt >= self->cur)
-    {
-      j = 0;
-      header = self->begin;
-      // found record for 'self->cur' index
-      while ((self->ring_buf[header]) && (cnt - j - 1 != self->cur))
-      {
-        header += self->ring_buf [header] + 1;
-        if (header >= MRL_RING_HISTORY_LEN)
-          header -= MRL_RING_HISTORY_LEN;
-        j++;
-      }
-
-      if (self->ring_buf[header])
-      {
-        self->cur++; // obtain saved line
-        if (self->ring_buf[header] + header < MRL_RING_HISTORY_LEN)
-        {
-          memset(line, 0, MRL_COMMAND_LINE_LEN);
-          memcpy(line, self->ring_buf + header + 1, self->ring_buf[header]);
-        }
-        else
-        {
-          int part0 = MRL_RING_HISTORY_LEN - header - 1;
-          memset(line, 0, MRL_COMMAND_LINE_LEN);
-          memcpy(line, self->ring_buf + header + 1, part0);
-          memcpy(line + part0, self->ring_buf, self->ring_buf[header] - part0);
-        }
-        return self->ring_buf[header];
-      }
-    }
-  }
-  else
-  {
-    if (self->cur > 0)
-    {
-      j = 0;
-      header = self->begin;
-      self->cur--;
-
-      while ((self->ring_buf[header] != 0) && (cnt - j != self->cur))
-      {
-        header += self->ring_buf[header] + 1;
-        if (header >= MRL_RING_HISTORY_LEN)
-          header -= MRL_RING_HISTORY_LEN;
-        j++;
-      }
-
-      if (self->ring_buf[header] + header < MRL_RING_HISTORY_LEN)
-      {
-        memcpy(line, self->ring_buf + header + 1, self->ring_buf[header]);
-      }
-      else
-      {
-        int part0 = MRL_RING_HISTORY_LEN - header - 1;
-        memcpy(line, self->ring_buf + header + 1, part0);
-        memcpy(line + part0, self->ring_buf, self->ring_buf[header] - part0);
-      }
-      return self->ring_buf[header];
-    }
-    else
-    { // empty line
-      return 0;
-    }
-  }
-  return -1;
+  *ptr++ = '\033';
+  *ptr++ = '[';
+  ptr += mrl_int2str(MRL_COMMAND_LINE_LEN + MRL_PROMPT_LEN + 2, ptr);
+  *ptr++ = 'D';
+  
+  *ptr++ = '\033';
+  *ptr++ = '[';
+  ptr += mrl_int2str(MRL_PROMPT_LEN, ptr);
+  *ptr++ = 'C';
+    
+  *ptr  = '\0';
+#endif
+  self->print(str);
 }
-#endif // MRL_USE_HISTORY
+//-----------------------------------------------------------------------------
+// print cmdline to screen
+static void mrl_terminal_print_line(mrl_t *self, int pos, int cursor)
+{
+  self->print("\033[K"); // delete all from cursor to end
+
+  self->cmdline[self->cmdlen] = '\0'; // FIXME ?!
+
+  if (pos <= self->cmdlen) // FIXME !!!
+    self->print(self->cmdline + pos);
+
+  mrl_terminal_reset_cursor(self);
+  mrl_terminal_move_cursor(self, cursor);
+}
 //-----------------------------------------------------------------------------
 // split cmdline to tkn array and return nmb of token
 // replace all whitespaces to '\0'
@@ -239,161 +146,6 @@ static void mrl_back_replace_spaces(mrl_t *self, int limit)
       self->cmdline[i] = ' ';
 }
 //-----------------------------------------------------------------------------
-INLINE void mrl_print_prompt(mrl_t *self)
-{
-  self->print(self->prompt_str);
-}
-//-----------------------------------------------------------------------------
-INLINE void mrl_terminal_backspace(mrl_t *self)
-{
-  self->print("\033[D \033[D");
-}
-//-----------------------------------------------------------------------------
-INLINE void mrl_terminal_newline(mrl_t *self)
-{
-  self->print(MRL_ENDL);
-}
-//-----------------------------------------------------------------------------
-#ifndef MRL_USE_LIBC_STDIO
-// convert unsigned int value to string (return string length)
-static int mrl_uint2str(unsigned int nmb, char *buf)
-{
-  int i = 0, j = 0, n;
-  do {
-    buf[i++] = (nmb % 10) + '0';
-    nmb /= 10;
-  } while (nmb);
-  buf[n = i--] = '\0';
-  while (j < i)
-  { // echange bytes
-    char c   = buf[j];
-    buf[j++] = buf[i];
-    buf[i--] = c;
-  }
-  return n;
-}
-#endif // !MRL_USE_LIBC_STDIO
-//-----------------------------------------------------------------------------
-// set cursor at position from begin cmdline (after prompt) + offset
-static void mrl_terminal_move_cursor(mrl_t *self, int offset)
-{
-  char str[16];
-#ifdef MRL_USE_LIBC_STDIO 
-  if (offset > 0)
-    snprintf(str, sizeof(str) - 1, "\033[%dC", offset);
-  else if (offset < 0)
-    snprintf(str, sizeof(str) - 1, "\033[%dD", -offset);
-#else 
-  char *ptr = str;
-
-  *ptr++ = '\033';
-  *ptr++ = '[';
-  if (offset > 0)
-  { // "\033[nC"
-    ptr += mrl_uint2str((unsigned int) offset, ptr);
-    *ptr++ = 'C';
-  }
-  else if (offset < 0)
-  { // "\033[nD"
-    ptr += mrl_uint2str((unsigned int) -offset, ptr);
-    *ptr++ = 'D';
-  }
-  else // offset == 0
-    return;
-
-  *ptr = '\0';
-#endif  
-  self->print(str);
-}
-//-----------------------------------------------------------------------------
-// set cursor to start position after prompt
-static void mrl_terminal_reset_cursor(mrl_t *self)
-{
-  char str[16];
-#ifdef MRL_USE_LIBC_STDIO
-  snprintf(str, sizeof(str), "\033[%dD\033[%dC",
-           MRL_COMMAND_LINE_LEN + MRL_PROMPT_LEN + 2, MRL_PROMPT_LEN);
-#else
-  char *ptr = str;
-
-  *ptr++ = '\033';
-  *ptr++ = '[';
-  ptr += mrl_uint2str(MRL_COMMAND_LINE_LEN + MRL_PROMPT_LEN + 2, ptr);
-  *ptr++ = 'D';
-  
-  *ptr++ = '\033';
-  *ptr++ = '[';
-  ptr += mrl_uint2str(MRL_PROMPT_LEN, ptr);
-  *ptr++ = 'C';
-    
-  *ptr  = '\0';
-#endif
-  self->print(str);
-}
-//-----------------------------------------------------------------------------
-// print cmdline to screen
-static void mrl_terminal_print_line(mrl_t *self, int pos, int cursor)
-{
-  self->print("\033[K"); // delete all from cursor to end
-
-  self->cmdline[self->cmdlen] = '\0'; // FIXME ?!
-
-  if (pos <= self->cmdlen) // FIXME !!!
-    self->print(self->cmdline + pos);
-
-  mrl_terminal_reset_cursor(self);
-  mrl_terminal_move_cursor(self, cursor);
-}
-//-----------------------------------------------------------------------------
-void mrl_init(mrl_t *self, void (*print)(const char *))
-{
-#ifdef MRL_USE_HISTORY
-  memset(self->ring_hist.ring_buf, 0, MRL_RING_HISTORY_LEN);
-  self->ring_hist.begin = 0;
-  self->ring_hist.end = 0;
-  self->ring_hist.cur = 0;
-#endif
-
-#ifdef MRL_USE_ESC_SEQ
-  self->escape_seq = MRL_ESC_STOP;
-#endif
-
-#if (defined(MRL_ENDL_CRLF) || defined(MRL_ENDL_LFCR))
-  self->tmpch = '\0';
-#endif
-
-  memset(self->cmdline, 0, MRL_COMMAND_LINE_LEN);
-  self->prompt_str = mrl_prompt_default;
-  self->cmdlen = 0;
-  self->cursor = 0;
-
-  self->print = print;
-  self->execute = NULL;
-  self->get_completion = NULL;
-
-#ifdef MRL_USE_CTLR_C
-  self->sigint = NULL;
-#endif
-
-#ifdef MRL_ENABLE_INIT_PROMPT
-  mrl_print_prompt(self);
-#endif
-}
-//-----------------------------------------------------------------------------
-#ifdef MRL_USE_HISTORY
-static void mrl_hist_search(mrl_t *self, int dir)
-{
-  int len = mrl_hist_restore_line(&self->ring_hist, self->cmdline, dir);
-  if (len >= 0)
-  {
-    self->cmdline[len] = '\0';
-    self->cursor = self->cmdlen = len;
-    mrl_terminal_reset_cursor(self);
-    mrl_terminal_print_line(self, 0, self->cursor);
-  }
-}
-#endif // MRL_USE_HISTORY
-//-----------------------------------------------------------------------------
 // remove one char at cursor
 static void mrl_backspace(mrl_t *self)
 {
@@ -406,6 +158,18 @@ static void mrl_backspace(mrl_t *self)
     self->cursor--;
     self->cmdline[self->cmdlen] = '\0';
     self->cmdlen--;
+  }
+}
+//-----------------------------------------------------------------------------
+static void mrl_hist_search(mrl_t *self, int dir)
+{
+  int len = mrl_hist_restore_line(&self->hist, self->cmdline, dir);
+  if (len >= 0)
+  {
+    self->cmdline[len] = '\0';
+    self->cursor = self->cmdlen = len;
+    mrl_terminal_reset_cursor(self);
+    mrl_terminal_print_line(self, 0, self->cursor);
   }
 }
 //-----------------------------------------------------------------------------
@@ -607,7 +371,7 @@ static void mrl_get_complite(mrl_t *self)
 }
 #endif // MRL_USE_COMPLETE
 //-----------------------------------------------------------------------------
-void mrl_new_line_handler(mrl_t *self)
+static void mrl_new_line_handler(mrl_t *self)
 {
   char const *tkn_arr[MRL_COMMAND_TOKEN_NMB];
   int status;
@@ -616,7 +380,7 @@ void mrl_new_line_handler(mrl_t *self)
 
 #ifdef MRL_USE_HISTORY
   if (self->cmdlen > 0)
-    mrl_hist_save_line(&self->ring_hist, self->cmdline, self->cmdlen);
+    mrl_hist_save_line(&self->hist, self->cmdline, self->cmdlen);
 #endif
 
   status = mrl_split(self, self->cmdlen, tkn_arr);
@@ -634,7 +398,39 @@ void mrl_new_line_handler(mrl_t *self)
   memset(self->cmdline, 0, MRL_COMMAND_LINE_LEN);
 
 #ifdef MRL_USE_HISTORY
-  self->ring_hist.cur = 0;
+  self->hist.cur = 0;
+#endif
+}
+//-----------------------------------------------------------------------------
+void mrl_init(mrl_t *self, void (*print)(const char *))
+{
+#ifdef MRL_USE_HISTORY
+  mrl_hist_init(&self->hist);
+#endif
+
+#ifdef MRL_USE_ESC_SEQ
+  self->escape_seq = MRL_ESC_STOP;
+#endif
+
+#if (defined(MRL_ENDL_CRLF) || defined(MRL_ENDL_LFCR))
+  self->tmpch = '\0';
+#endif
+
+  memset(self->cmdline, 0, MRL_COMMAND_LINE_LEN);
+  self->prompt_str = mrl_prompt_default;
+  self->cmdlen = 0;
+  self->cursor = 0;
+
+  self->print = print;
+  self->execute = NULL;
+  self->get_completion = NULL;
+
+#ifdef MRL_USE_CTLR_C
+  self->sigint = NULL;
+#endif
+
+#ifdef MRL_ENABLE_INIT_PROMPT
+  mrl_print_prompt(self);
 #endif
 }
 //-----------------------------------------------------------------------------
@@ -762,7 +558,7 @@ int mrl_insert_char(mrl_t *self, int ch)
       return MRL_KEY_EOT;
 
     default:
-      if (((ch == ' ') && (self->cmdlen == 0)) || MRL_IS_CONTROL_CHAR(ch))
+      if (/*((ch == ' ') && (self->cmdlen == 0)) ||*/ MRL_IS_CONTROL_CHAR(ch))
         break;
       if (mrl_insert_text(self, (const char*) &ch, 1))
         mrl_terminal_print_line(self, self->cursor - 1, self->cursor);
@@ -772,12 +568,43 @@ int mrl_insert_char(mrl_t *self, int ch)
   return 0;
 }
 //----------------------------------------------------------------------------
-#ifdef MRL_STR2LONG
-long mrl_str2long(const char *str, long def_val, unsigned char base)
+#if defined(MRL_INT2STR) || !defined(MRL_USE_LIBC_STDIO)
+int mrl_int2str(int value, char *buf)
+{
+  int i = 0, j = 0, n = 0;
+
+  if (value < 0)
+  {
+    value = -value;
+    *buf++ = '-';
+    n++;
+  }
+
+  do {
+    buf[i++] = (value % 10) + '0';
+    value /= 10;
+  } while (value);
+
+  n += i--;
+  buf[n] = '\0';
+
+  while (j < i)
+  { // echange bytes
+    char c   = buf[j];
+    buf[j++] = buf[i];
+    buf[i--] = c;
+  }
+
+  return n;
+}
+#endif // defined(MRL_INT2STR) || !defined(MRL_USE_LIBC_STDIO)
+//----------------------------------------------------------------------------
+#ifdef MRL_STR2INT
+int mrl_str2int(const char *str, int def_val, unsigned char base)
 {
   unsigned char c, sign = 0;
   const unsigned char *p = (const unsigned char*) str;
-  long retv = 0;
+  int retv = 0;
   
   if (str == (const char*) NULL) return def_val;
 
@@ -806,17 +633,17 @@ long mrl_str2long(const char *str, long def_val, unsigned char base)
     p++;
     if (base == 0) base = 8; // OCT (ANSI C)
     if (*p == 'x' || *p == 'X')
-    { // HEX
+    { // 0xHHHH - HEX
       base = 16;
       p++;
     }
     else if (*p == 'b' || *p == 'B')
-    { // BIN
+    { // 0bBBBB - BIN
       base = 2;
       p++;
     }
     else if (*p == 'o' || *p == 'O')
-    { // OCT
+    { // 0oOOOO - OCT
       base = 8;
       p++;
     }
@@ -836,13 +663,13 @@ long mrl_str2long(const char *str, long def_val, unsigned char base)
     }
     c -= '0';
     if (c >= base) return def_val; // illegal char
-    retv *= (long) base;
-    retv += (long) c;
+    retv *= (int) base;
+    retv += (int) c;
   }
 
   return (sign == 0) ? retv : -retv;
 }
-#endif // MRL_STR2LONG
+#endif // MRL_STR2INT
 //-----------------------------------------------------------------------------
 
 /* end of "mrl.c" file ***/

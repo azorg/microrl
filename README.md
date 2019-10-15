@@ -41,10 +41,12 @@ history and completion feature.
 ## 3. Source code structure
 
 ```
-mrl.h          - external MicroRL interface and data types
 mrl_conf.h     - customization MicroRL config file
 mrl_defs.h     - internal MicroRL defines
+mrl.h          - external MicroRL interface and data types
 mrl.c          - source code of MicroRL routines
+mrl_hist.h     - history ring buffer data structure
+mrl_hist.c     - source code of history ring buffer routines
 test/            - library usage example and test for GNU/Linux
   mrl_test.c     - source code of example and test
   Makefile       - Makefile for build test
@@ -130,9 +132,13 @@ See example library usage in test folder.
 
  * [+] add CRTL+D key
 
- * [+] add mrl_str2long() function as atoi()/atol() alternative
+ * [+] replace `u16bit_to_str()` to `mrl_int2str()` - more universal function
+
+ * [+] add mrl_str2int() function as atoi() alternative
 
  * [-] new unlimit (>256 bytes) history ring buffer
+
+ * [-] fix reset cmdline by cursor up/CTRL-P (copy cmdline to history befor)
 
 ## 6. License
 
