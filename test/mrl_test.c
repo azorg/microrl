@@ -92,7 +92,16 @@ static void print_help()
 // do what you want here, but don't write to argv!!! read only!!
 static int execute(int argc, const char * const * argv)
 {
-  int i = 0;
+  int i;
+#if 1
+  printf("argc=%i\r\n", argc);
+  for (i = 0; i < argc; i++)
+    printf("argv[%i]='%s'\r\n", i, argv[i]);
+  printf("argv[%i]=%p\r\n", argc, argv[argc]);
+#endif
+
+  i = 0;
+ 
   // just iterate through argv word and compare it with your commands
   if (argc > 0)
   {
@@ -174,9 +183,9 @@ static int execute(int argc, const char * const * argv)
     }
     else
     {
-      print("command: '");
+      print("command ");
       print((char*)argv[i]);
-      print("' not found.\n\r");
+      print(" not found\n\r");
     }
   }
   return 0;

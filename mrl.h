@@ -8,18 +8,27 @@
 //-----------------------------------------------------------------------------
 #include "mrl_conf.h"
 //-----------------------------------------------------------------------------
-#ifdef MRL_USE_HISTORY
-#  include "mrl_hist.h"
-#endif
-//-----------------------------------------------------------------------------
 #ifndef INLINE
 #  define INLINE static inline
 #endif
+//-----------------------------------------------------------------------------
+#ifdef MRL_USE_HISTORY
+// history struct, contain internal variable
+// history store in static ring buffer for memory saving
+typedef struct {
+  char buf[MRL_RING_HISTORY_LEN]; // ring buffer
+  int begin; // begin index of olderst line
+  int end;   // end index (index of future line) 
+  int cur;   // index of current string in buffer
+  int last;  // index of last string in buffer
+} mrl_hist_t;
+#endif // MRL_USE_HISTORY
 //-----------------------------------------------------------------------------
 // microrl struct, contain internal library data
 typedef struct {
 #ifdef MRL_USE_HISTORY
   mrl_hist_t hist; // history object
+  int hist_state;
 #endif
 
 #ifdef MRL_USE_ESC_SEQ
@@ -30,9 +39,12 @@ typedef struct {
   char tmpch;
 #endif
 
+  const char *prompt; // pointer to prompt string
+  int prompt_len; // prompt sting length without escape chars
+  
   char cmdline[MRL_COMMAND_LINE_LEN]; // cmdline buffer
-  const char *prompt_str; // pointer to prompt string
   int cmdlen; // last position in command line
+  
   int cursor; // input cursor
 
   // ptr to 'print' callback
@@ -60,6 +72,15 @@ extern "C"
 // init internal data, calls once at start up
 void mrl_init(mrl_t *self, void (*print)(const char*));
 //-----------------------------------------------------------------------------
+// set prompt string
+INLINE void mrl_set_prompt(mrl_t *self, const char *prompt, int prompt_len)
+{
+  self->prompt     = prompt;
+  self->prompt_len = prompt_len;
+  //...
+}
+//-----------------------------------------------------------------------------
+// FIXME
 // set echo mode (true/false), using for disabling echo for password input
 // echo mode will enabled after user press Enter.
 //void mrl_set_echo(int);
@@ -100,10 +121,15 @@ INLINE void mrl_set_sigint_cb(mrl_t *self, void (*sigintf)(void))
 // (return non zero key code if Ctrl+C or Ctrl+D pressed, else 0)
 int mrl_insert_char(mrl_t *self, int ch);
 //----------------------------------------------------------------------------
-#if defined(MRL_INT2STR) || !defined(MRL_USE_LIBC_STDIO)
+#if defined(MRL_UINT2STR) || defined(MRL_INT2STR) || !defined(MRL_USE_LIBC_STDIO)
+// convert unsigned integer value to string (return string length)
+int mrl_uint2str(unsigned value, char *buf);
+#endif // MRL_UINT2STR || MRL_INT2STR || !MRL_USE_LIBC_STDIO
+//----------------------------------------------------------------------------
+#ifdef MRL_INT2STR
 // convert integer value to string (return string length)
 int mrl_int2str(int value, char *buf);
-#endif // defined(MRL_INT2STR) || !defined(MRL_USE_LIBC_STDIO)
+#endif // MRL_INT2STR
 //----------------------------------------------------------------------------
 #ifdef MRL_STR2INT
 // C-style string to integer transformation (0xHHHH-hex, 0OOO-oct, 0bBBBB-bin)

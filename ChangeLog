@@ -1,3 +1,7 @@
+2019.10.15-16:
+ * refactor code
+ * begin new ring buffer (work in process)
+
 2019.10.14:
  * fork from: https://github.com/Helius/microrl
  + add CTRL+D and Delete key (on GNU/Linux)

@@ -16,7 +16,7 @@
 // '\0' - NULL terminator, and not use for storing inputed char.
 // If user input chars more then it parametrs - 1, chars not added to
 // command line.
-#define MRL_COMMAND_LINE_LEN (1 + 100) // for 32 chars
+#define MRL_COMMAND_LINE_LEN (20 + 1) // FIXME
 //-----------------------------------------------------------------------------
 // Command token number, define max token it command line, if number of token
 // typed in command line exceed this value, then prints message about it and
@@ -38,7 +38,7 @@
 // Define prompt text (without ESC sequence, only text) prompt length,
 // it needs because if you use ESC sequence, it's not possible detect
 // only text length.
-#define MRL_PROMPT_LEN 3 // strlen("=> ")
+#define MRL_PROMPT_DEFAULT_LEN 3 // strlen("=> ")
 //-----------------------------------------------------------------------------
 // Define it, if you wanna use completion functional, also set completion
 // callback in you code, now if user press TAB calls 'copmlitetion'
@@ -57,7 +57,7 @@
 // so we can not say, how many line we can store, it depends from cmdline len,
 // but memory using more effective. We not prefer dynamic memory allocation
 // for small and embedded devices. Overhead is 2 char on each saved line
-#define MRL_RING_HISTORY_LEN 80
+#define MRL_RING_HISTORY_LEN 80 // FIXME
 //-----------------------------------------------------------------------------
 // Enable Handling terminal ESC sequence. If disabling, then cursor arrow,
 // HOME, END, DELETE will not work (use Ctrl+A(B,F,P,N,A,E,H,K,U,C)) but
@@ -67,7 +67,7 @@
 // Use snprintf() from standard compiler library, but it gives some overhead.
 // If not defined, use u16int_to_str() function, it's decrease size of code.
 // Try to build with and without, and compare total code size for tune library.
-//#define MRL_USE_LIBC_STDIO
+#define MRL_USE_LIBC_STDIO
 //-----------------------------------------------------------------------------
 // Enable 'interrupt signal' callback, if user press Ctrl+C
 #define MRL_USE_CTRL_C
@@ -82,7 +82,10 @@
 // execution callback (0xHHH, 0OOOO, 0bBBBB format supported)
 #define MRL_STR2INT
 //-----------------------------------------------------------------------------
-// Enable mrl_in2strt() - simple print integer value to string 
+// Enable mrl_uint2strt() - simple print unsigned integer value to string 
+#define MRL_UINT2STR
+//-----------------------------------------------------------------------------
+// Enable mrl_int2strt() - simple print integer value to string 
 #define MRL_INT2STR
 //-----------------------------------------------------------------------------
 // Selected new line symbol(s)
@@ -100,9 +103,8 @@
 #  error "You must define new line symbol."
 #endif
 //-----------------------------------------------------------------------------
-#if MRL_RING_HISTORY_LEN > 256
-#error "This history implementation (ring buffer with 1 byte iterator)."
-#error "Allow only 256 byte buffer size maximum."
+#if MRL_RING_HISTORY_LEN < MRL_COMMAND_LINE_LEN
+#error "MRL_RING_HISTORY_LEN < MRL_COMMAND_LINE_LEN"
 #endif
 //-----------------------------------------------------------------------------
 #endif // MRL_CONF_H

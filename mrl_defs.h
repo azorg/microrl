@@ -44,8 +44,8 @@
 #define MRL_IS_CONTROL_CHAR(x) ((x) <= 31)
 //-----------------------------------------------------------------------------
 // direction of history navigation
-#define MRL_HIST_UP   0
-#define MRL_HIST_DOWN 1
+#define MRL_HIST_BACKWARD 0
+#define MRL_HIST_FORWARD  1
 //-----------------------------------------------------------------------------
 // ESC seq internal codes
 #define MRL_ESC_STOP    0

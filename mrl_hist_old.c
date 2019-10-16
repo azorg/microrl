@@ -80,7 +80,7 @@ void mrl_hist_init(mrl_hist_t *self)
 }
 //-----------------------------------------------------------------------------
 // put line to ring buffer
-void mrl_hist_save_line(mrl_hist_t *self, char *line, int len)
+void mrl_hist_save(mrl_hist_t *self, const char *line, int len)
 {
   if (len > MRL_RING_HISTORY_LEN - 2)
     return;
@@ -117,7 +117,7 @@ void mrl_hist_save_line(mrl_hist_t *self, char *line, int len)
 }
 //-----------------------------------------------------------------------------
 // copy saved line to 'line' and return size of line
-int mrl_hist_restore_line(mrl_hist_t *self, char *line, int dir)
+int mrl_hist_restore(mrl_hist_t *self, char *line, int dir)
 {
   int j, cnt = 0; // count history record  
   int header = self->begin;
