@@ -4,7 +4,7 @@ This library forked from https://github.com/Helius/microrl
 
 ## 1. Description
 
-Microrl library is designed to help implement command line interface in small
+MicroRL library is designed to help implement command line interface in small
 and embedded devices. Main goal is to write compact, small memory consuming
 but powerful interfaces, with support navigation through command line with
 cursor, HOME, END, DEL, BACKSPACE keys, hot key like Ctrl+U and other,
@@ -145,5 +145,4 @@ See example library usage in test folder.
 ## 6. License
 
 Licensed under the Apache License, Version 2.0 (see "LICENSE" and "NOTICE").
-
 

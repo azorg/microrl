@@ -23,7 +23,7 @@ WARN      := -Wall
 
 CFLAGS    := $(WARN) $(OPTIM) $(DEFS) $(CFLAGS) -pipe
 CXXFLAGS  := $(CXXFLAGS) $(CFLAGS)
-LDFLAGS   := -lm -lrt -lpthread $(LDFLAGS)
+LDFLAGS   := -lm $(LDFLAGS)
 
 PREFIX    := /opt
 #----------------------------------------------------------------------------

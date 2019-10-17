@@ -49,14 +49,14 @@ typedef struct {
   int cursor; // input cursor
 
   // ptr to 'print' callback
-  void (*print) (const char *);
+  void (*print) (const char *str);
 
   // ptr to 'execute' callback
-  int (*execute) (int argc, const char * const * argv);
+  int (*execute) (int argc, char * const argv[]);
   
 #ifdef MRL_USE_COMPLETE
   // ptr to 'completion' callback (optoinal)
-  char ** (*get_completion) (int argc, const char * const * argv);
+  char** (*get_completion) (int argc, char * const argv[]);
 #endif // MRL_USE_COMPLETE
 
 #ifdef MRL_USE_CTRL_C
@@ -87,7 +87,7 @@ void mrl_prompt(mrl_t *self);
 // execute func param: argc - argument count, argv - pointer array to
 // token string
 INLINE void mrl_set_execute_cb(mrl_t *self,
-                               int (*execute)(int, const char* const*))
+                               int (*execute)(int, char * const[]))
 {
   self->execute = execute;
 }
@@ -101,7 +101,7 @@ INLINE void mrl_set_execute_cb(mrl_t *self,
 //   token to be complitted Empty string if complite not found, and multiple
 //   string if there are some token
 INLINE void mrl_set_complete_cb(
-        mrl_t *self, char **(*get_completion)(int, const char* const*))
+        mrl_t *self, char**(*get_completion)(int, char * const[]))
 {
   self->get_completion = get_completion;
 }

@@ -345,7 +345,7 @@ static void mrl_hist(mrl_t *self, int dir)
 //-----------------------------------------------------------------------------
 // split cmdline to tkn array and return nmb of token
 // replace all whitespaces to '\0'
-static int mrl_split(char *str, int len, char const **argv)
+static int mrl_split(char *str, int len, char **argv)
 {
   int argc = 0, i = 0;
   while (1)
@@ -378,16 +378,16 @@ static void mrl_insert_text(mrl_t *self, const char *text, int len)
   
   if (len > 0)
   {
-    memmove(self->cmdline + self->cursor + len,
-	    self->cmdline + self->cursor,
-	    self->cmdlen  - self->cursor + 1);
+    char *p1 = self->cmdline + self->cursor;
+    char *p2 = p1 + len;
+    memmove(p2, p1, self->cmdlen - self->cursor + 1);
 
-    memcpy(self->cmdline + self->cursor, text, len);
+    memcpy(p1, text, len);
     
     self->cmdlen += len;
 
     mrl_terminal_cursor(self, self->cursor);
-    mrl_terminal_print(self, self->cmdline + self->cursor);
+    mrl_terminal_print(self, p1);
     self->cursor += len;
     mrl_terminal_cursor(self, self->cursor);
   }
@@ -395,7 +395,7 @@ static void mrl_insert_text(mrl_t *self, const char *text, int len)
 //-----------------------------------------------------------------------------
 #ifdef MRL_USE_COMPLETE
 // back replace '\0' to whitespaces
-static void mrl_back_replace_spaces(char *str, int len)
+INLINE void mrl_back_replace_spaces(char *str, int len)
 {
   int i;
   for (i = 0; i < len; i++)
@@ -403,10 +403,10 @@ static void mrl_back_replace_spaces(char *str, int len)
       str[i] = ' ';
 }
 //-----------------------------------------------------------------------------
-static int mrl_common_len(char **argv)
+static int mrl_common_len(char * const argv[])
 {
   int i, j;
-  char *shortest = argv[0];
+  const char *shortest = argv[0];
   int shortlen = strlen(shortest);
 
   for (i = 1; argv[i] != NULL; i++)
@@ -420,26 +420,26 @@ static int mrl_common_len(char **argv)
   }
 
   for (i = 0; i < shortlen; i++)
-    for (j = 0; argv[j] != 0; j++)
+    for (j = 0; argv[j] != NULL; j++)
       if (shortest[i] != argv[j][i])
         return i;
 
-  return i;
+  return shortlen;
 }
 //-----------------------------------------------------------------------------
 // TAB pressed
 INLINE void mrl_get_complite(mrl_t *self)
 {
   int argc;
-  char const *argv[MRL_COMMAND_TOKEN_NUM + 1];
+  char *argv[MRL_COMMAND_TOKEN_NUM + 2];
   char **compl_argv;
   
   if (self->get_completion == NULL) return; // callback was not set
   
   argc = mrl_split(self->cmdline, self->cursor, argv);
 
-  if (self->cmdline[self->cursor - 1] == '\0') // it was whitespace
-  {
+  if (self->cmdline[self->cursor - 1] == '\0')
+  { // last char WAS whitespace
     argv[argc++] = "";
     argv[argc]   = NULL;
   }
@@ -458,12 +458,22 @@ INLINE void mrl_get_complite(mrl_t *self)
     }
     else
     { // some variants
-      len = mrl_common_len(compl_argv);
+#ifdef MRL_COMPLETE_COLS
+      int num = 0;
+#endif
       mrl_terminal_newline(self);
+      len = mrl_common_len(compl_argv);
       while (compl_argv[i] != NULL)
       {
-        self->print(compl_argv[i]);
-        self->print (" ");
+#ifdef MRL_COMPLETE_COLS
+        if (++num > MRL_COMPLETE_COLS)
+	{
+	  num = 1;
+          mrl_terminal_newline(self);
+	}
+#endif
+	self->print(compl_argv[i]);
+        self->print(" ");
         i++;
       }
       mrl_terminal_newline(self);
@@ -471,11 +481,13 @@ INLINE void mrl_get_complite(mrl_t *self)
     }
     
     if (len)
-    {
+    { // insert completion
       mrl_insert_text(self, compl_argv[0] + strlen(argv[argc - 1]), 
                       len - strlen(argv[argc - 1]));
-      if (compl_argv[1] == NULL) 
-        mrl_insert_text(self, " ", 1);
+
+      if (compl_argv[1] == NULL &&            // only one variant and
+	  self->cmdline[self->cursor] != ' ') // no space at cursor
+        mrl_insert_text(self, " ", 1);        // => append space
     }
 
     mrl_terminal_cursor(self, 0);
@@ -488,7 +500,7 @@ INLINE void mrl_get_complite(mrl_t *self)
 static void mrl_new_line_handler(mrl_t *self)
 {
   int argc;
-  char const *argv[MRL_COMMAND_TOKEN_NUM + 1];
+  char *argv[MRL_COMMAND_TOKEN_NUM + 1];
 
 #ifdef MRL_USE_HISTORY
   mrl_hist_save(&self->hist, self->cmdline);
@@ -511,7 +523,7 @@ static void mrl_new_line_handler(mrl_t *self)
   mrl_terminal_prompt(self);
 }
 //-----------------------------------------------------------------------------
-void mrl_init(mrl_t *self, void (*print)(const char *))
+void mrl_init(mrl_t *self, void (*print)(const char*))
 {
 #ifdef MRL_USE_HISTORY
   mrl_hist_init(&self->hist);

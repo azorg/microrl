@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include "mrl.h"
 //-----------------------------------------------------------------------------
+#define MRL_LIB_VER "1.5.1f" // delivered from "1.5.1" ('f' - forked)
+//-----------------------------------------------------------------------------
 // definition commands word
 #define _CMD_HELP   "help"
 #define _CMD_CLEAR  "clear"
@@ -22,17 +24,18 @@
 #define _CMD_VALUE  "value"
 #define _CMD_VER    "version"
 #define _CMD_PROMPT "prompt"
+#define _CMD_PROFIT "profit"
+#define _NUM_OF_CMD 9
 
 // sub commands for version command
 #define _SCMD_MRL  "microrl"
 #define _SCMD_DEMO "demo"
-
-#define _NUM_OF_CMD 8
 #define _NUM_OF_VER_SCMD 2
 
 // available  commands
 char *keyworld[] = { _CMD_HELP, _CMD_CLEAR, _CMD_LIST, _CMD_NAME,
-                     _CMD_VALUE, _CMD_VER, _CMD_LISP, _CMD_PROMPT };
+                     _CMD_VALUE, _CMD_VER, _CMD_LISP, _CMD_PROMPT,
+                     _CMD_PROFIT };
 
 // version subcommands
 char *ver_keyworld[] = { _SCMD_MRL, _SCMD_DEMO };
@@ -94,11 +97,12 @@ static void print_help()
   print("\tlisp - dummy command for demonstation auto-completion, "
         "while inputed 'l+<TAB>'\n\r");
   print("\tprompt PROMPT - set new prompt\n\r");
+  print("\tprofit - get profit\n\r");
 }
 //-----------------------------------------------------------------------------
 // execute callback for microrl library
 // do what you want here, but don't write to argv!!! read only!!
-static int execute(int argc, const char * const * argv)
+static int execute(int argc, char * const argv[])
 {
   int i;
 #ifdef MRL_DEBUG
@@ -107,7 +111,6 @@ static int execute(int argc, const char * const * argv)
     printf("argv[%i]='%s'\r\n", i, argv[i]);
   printf("argv[%i]=%p\r\n", argc, argv[argc]);
 #endif
-
  
   // just iterate through argv word and compare it with your commands
   i = 0;
@@ -192,12 +195,18 @@ static int execute(int argc, const char * const * argv)
     else if (strcmp(argv[i], _CMD_PROMPT) == 0)
     {
       if (++i < argc)
+      {
         strcpy(prompt, argv[i]);
+        strcat(prompt, " ");
+      }
       else
         strcpy(prompt, "");
-      strcat(prompt, " ");
 
       mrl_set_prompt(&mrl, prompt, strlen(prompt));
+    }
+    else if (strcmp(argv[i], _CMD_PROFIT) == 0)
+    {
+      print("There is no any profit.\n\r");
     }
     else
     {
@@ -211,40 +220,46 @@ static int execute(int argc, const char * const * argv)
 //-----------------------------------------------------------------------------
 #ifdef MRL_USE_COMPLETE
 // completion callback for microrl library
-static char **complete(int argc, const char * const * argv)
+static char** complete(int argc, char * const argv[])
 {
-  int i, j = 0;
-  compl_world[0] = NULL;
+  int i, count = 0;
 
-  // if there is token in cmdline
-  if (argc == 1)
-  { // get last entered token
-    char * bit = (char*)argv [argc-1];
+#ifdef MRL_DEBUG
+  printf("\r\nargc=%i\r\n", argc);
+  for (i = 0; i < argc; i++)
+    printf("argv[%i]='%s'\r\n", i, argv[i]);
+  printf("argv[%i]=%p\r\n", argc, argv[argc]);
+#endif
 
+  if (argc == 0)
+  { // if there is no token in cmdline, just print all available token
+    for (; count < _NUM_OF_CMD; count++)
+      compl_world[count] = keyworld[count];
+  }
+  else if (argc == 1)
+  { // if there is first token
     // iterate through our available token and match it
     for (i = 0; i < _NUM_OF_CMD; i++)
     { // if token is matched (text is part of our token starting from 0 char)
-      if (strstr(keyworld [i], bit) == keyworld[i])
-      {  // add it to completion set
-        compl_world[j++] = keyworld[i];
+      if (strstr(keyworld[i], argv[0]) == keyworld[i])
+      { // add it to completion set
+        compl_world[count++] = keyworld[i];
       }
     }
   }
-  else if ((argc > 1) && (strcmp (argv[0], _CMD_VER)==0))
-  { // if command needs subcommands
-    // iterate through subcommand for command _CMD_VER array
-    for (i = 0; i < _NUM_OF_VER_SCMD; i++)
-      if (strstr (ver_keyworld [i], argv [argc-1]) == ver_keyworld [i])
-        compl_world [j++] = ver_keyworld [i];
-  }
-  else
-  { // if there is no token in cmdline, just print all available token
-    for (; j < _NUM_OF_CMD; j++)
-      compl_world[j] = keyworld [j];
+  else if (argc == 2)
+  { // if there is second token
+    if (strcmp(argv[0], _CMD_VER)==0)
+    { // first token is "version"
+      // iterate through subcommand array
+      for (i = 0; i < _NUM_OF_VER_SCMD; i++)
+	if (strstr(ver_keyworld[i], argv[1]) == ver_keyworld[i])
+	  compl_world[count++] = ver_keyworld[i];
+    }
   }
 
   // note! last ptr in array always must be NULL!!!
-  compl_world[j] = NULL;
+  compl_world[count] = NULL;
 
   // return set of variants
   return compl_world;
@@ -259,7 +274,7 @@ static void sigint()
 #endif // MRL_USE_CTRL_C
 
 //-----------------------------------------------------------------------------
-const char * custom_prompt = "\033[35m->\033[0m ";
+const char *custom_prompt = "\033[35m->\033[0m ";
 const int custom_prompt_len = 3;
 //-----------------------------------------------------------------------------
 int main(int argc, char **argv)

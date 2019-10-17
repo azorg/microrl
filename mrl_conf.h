@@ -1,17 +1,15 @@
 /*
- * MicroRL library config file
+ * MicroRL library (config file)
  * File "mrl_conf.h"
  */
 
 #ifndef MRL_CONF_H
 #define MRL_CONF_H
 //-----------------------------------------------------------------------------
-#define MRL_LIB_VER "1.5.1f" // delivered from "1.5.1" ('f' - forked)
-//-----------------------------------------------------------------------------
 // Command line length, define cmdline buffer size.
 // Set max number of chars + 1 because last byte of buffer need to
 // contain '\0' - NULL terminator, and not use for storing inputed char.
-#define MRL_COMMAND_LINE_LEN 32 // FIXME
+#define MRL_COMMAND_LINE_LEN 81 // FIXME
 //-----------------------------------------------------------------------------
 // Command token number, define max token it command line, if number of token
 // typed in command line exceed this value, then prints message about it and
@@ -42,6 +40,10 @@
 // it - disable this define.
 #define MRL_USE_COMPLETE
 //-----------------------------------------------------------------------------
+// Define it, if much alternatives for complete.
+// Number of completion help columns.
+#define MRL_COMPLETE_COLS 5
+//-----------------------------------------------------------------------------
 // Define it, if you wanna use history. It s work's like bash history, and
 // set stored value to cmdline, if UP and DOWN key pressed. Using history add
 // memory consuming, depends from MRL_RING_HISTORY_LEN parametr
@@ -52,7 +54,7 @@
 // so we can not say, how many line we can store, it depends from cmdline len,
 // but memory using more effective. We not prefer dynamic memory allocation
 // for small and embedded devices. Overhead is only 1 char on each saved line
-#define MRL_RING_HISTORY_LEN 80 // FIXME
+#define MRL_RING_HISTORY_LEN 200 // FIXME
 //-----------------------------------------------------------------------------
 // Enable Handling terminal ESC sequence. If disabling, then cursor arrow,
 // HOME, END, DELETE will not work (use Ctrl+A(B,F,P,N,A,E,H,K,U,C,D)) but
@@ -62,7 +64,7 @@
 // Use snprintf() from standard compiler library, but it gives some overhead.
 // If not defined, use u16int_to_str() function, it's decrease size of code.
 // Try to build with and without, and compare total code size for tune library.
-#define MRL_USE_LIBC_STDIO
+//#define MRL_USE_LIBC_STDIO
 //-----------------------------------------------------------------------------
 // Enable 'interrupt signal' callback, if user press Ctrl+C
 #define MRL_USE_CTRL_C
@@ -73,15 +75,15 @@
 // subsystem already initialise and ready to print message
 //#define MRL_ENABLE_INIT_PROMPT
 //-----------------------------------------------------------------------------
-// Enable mrl_str2int() function as atoi() alternative for use into command
-// execution callback (0xHHH, 0OOOO, 0bBBBB format supported)
-//#define MRL_STR2INT
-//-----------------------------------------------------------------------------
 // Enable mrl_uint2strt() - simple print unsigned integer value to string 
 //#define MRL_UINT2STR
 //-----------------------------------------------------------------------------
 // Enable mrl_int2strt() - simple print integer value to string 
 //#define MRL_INT2STR
+//-----------------------------------------------------------------------------
+// Enable mrl_str2int() function as atoi() alternative for use into command
+// execution callback (0xHHH, 0OOOO, 0bBBBB format supported)
+#define MRL_STR2INT
 //-----------------------------------------------------------------------------
 // Selected new line symbol(s)
 #define MRL_ENDL_LF
