@@ -16,12 +16,12 @@ history and completion feature.
 	 - Turn on/off feature for add functional/decrease memory via config files.
 
 	** hot keys support
-	 - backspace, cursor arrow, HOME, END and DELETE keys
-	 - Ctrl+U (cut line from cursor to begin) 
+	 - BACKSPACE, cursor arrow, HOME, END and DELETE keys
+	 - Ctrl+U (like Alt+BACKSPACE - cut line from cursor to begin) 
 	 - Ctrl+K (cut line from cursor to end) 
 	 - Ctrl+A (like HOME) 
 	 - Ctrl+E (like END)
-	 - Ctrl+H (like backspace)
+	 - Ctrl+H (like BACKSPACE)
 	 - Ctrl+B (like cursor arrow left) 
 	 - Ctrl+F (like cursor arrow right)
 	 - Ctrl+P (like cursor arrow up)
@@ -124,23 +124,23 @@ int main(int argc, char ** argv)
 ```
 See example library usage in test folder.
 
-## 5. MicroRL fork tasks (FIXED[+], TODO[-] and WORK[~])
+## 5. MicroRL fork tasks ([+]FIXED[+], [-]TODO and [~]WORK)
 
  * [+] add DELETE key support
 
  * [+] add Crtl+D key
 
+ * [+] add Alt+BACKSPACE key
+
  * [+] replace `u16bit_to_str()` to `mrl_uint2str()` - more traditional API
 
  * [+] add mrl_str2int() function as atoi() alternative
 
- * [-] new unlimit (>256 bytes) history ring buffer
+ * [+] new unlimit (>256 bytes) history ring buffer
 
- * [-] fix reset cmdline by cursor UP/Ctrl+P (copy cmdline to history befor)
+ * [+] fix reset cmdline by cursor UP/Ctrl+P (copy cmdline to history befor)
 
  * [~] refactor sources, fix old bugs and add new :-)
-
- * [+] trim whitespaces before save to history ring buffer
 
 ## 6. License
 

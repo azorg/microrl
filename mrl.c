@@ -8,22 +8,12 @@
 #include "mrl_defs.h"
 //-----------------------------------------------------------------------------
 #include <string.h>
-#include <stdbool.h>
-#include <ctype.h>
-#include <stdlib.h>
 #ifdef MRL_USE_LIBC_STDIO
 #include <stdio.h>
 #endif
 //-----------------------------------------------------------------------------
-#ifdef MRL_DEBUG
-#  include <stdio.h>
-#  define MRL_DBG(...) fprintf(stderr, "\033[31m");\
-                       fprintf(stderr, __VA_ARGS__);\
-                       fprintf(stderr, "\033[0m");
-#endif // MRL_DEBUG
-//-----------------------------------------------------------------------------
-static char * const mrl_prompt_default     = MRL_PROMPT_DEFAULT;
-const int           mrl_prompt_default_len = MRL_PROMPT_DEFAULT_LEN;
+const char * mrl_prompt_default     = MRL_PROMPT_DEFAULT;
+const int    mrl_prompt_default_len = MRL_PROMPT_DEFAULT_LEN;
 //-----------------------------------------------------------------------------
 #ifdef MRL_USE_HISTORY
 #ifdef MRL_DEBUG_HISTORY
@@ -35,6 +25,10 @@ static void mrl_hist_print(mrl_hist_t *self)
   int i;
   for (i = 0; i < MRL_RING_HISTORY_LEN; i++)
     printf("%c", i == self->begin ? 'B' : ' ');
+
+  printf(MRL_ENDL);
+  for (i = 0; i < MRL_RING_HISTORY_LEN; i++)
+    printf("%c", i == self->cur ? 'C' : ' ');
 
   printf(MRL_ENDL);
   for (i = 0; i < MRL_RING_HISTORY_LEN; i++)
@@ -69,7 +63,7 @@ static void mrl_cmd_print(mrl_t *self)
 }
 #endif // MRL_DEBUG_HISTORY
 //-----------------------------------------------------------------------------
-// init history structure
+// init history ring buffer
 static void mrl_hist_init(mrl_hist_t *self)
 {
 #ifdef MRL_DEBUG_HISTORY
@@ -82,106 +76,134 @@ static void mrl_hist_init(mrl_hist_t *self)
 }
 //-----------------------------------------------------------------------------
 // save string to ring buffer
-static void mrl_hist_save(mrl_hist_t *self, const char *str)
+static bool mrl_hist_save(mrl_hist_t *self, const char *str)
 {
-  char c;
- 
+  char ch;
+  
+  // go out from history search mode
   self->cur = -1;
+
+  // trim whitespaces on the begin
+  while (*str == ' ') str++;
+
+  // don't save empty string
+  if (*str == '\0') return false;
+
   if (self->last != self->end)
-  {
+  { // ring buffer not empty
     int i = self->last, j = 0;
     while (1)
     {
-      c = str[j++];
-      if (c != self->buf[i]) break;
-      if (c == '\0')
-	return; // don't save the same string
+      ch = str[j++];
+      if (ch != self->buf[i]) break;
+      if (ch == '\0')
+        return false; // don't save the same string
       if (++i == MRL_RING_HISTORY_LEN) i = 0;
     }
   }
-
+  
   self->last = self->end;
   do {
-    c = *str++;
-    self->buf[self->end++] = c;
-    if (self->end == MRL_RING_HISTORY_LEN)
-      self->end = 0;
+    ch = *str++;
+    self->buf[self->end++] = ch;
+    if (self->end == MRL_RING_HISTORY_LEN) self->end = 0;
     if (self->end == self->begin)
     { // delete from history olderest string
       do {
-        if (++self->begin == MRL_RING_HISTORY_LEN)
-          self->begin = 0;
+        if (++self->begin == MRL_RING_HISTORY_LEN) self->begin = 0;
       } while (self->buf[self->begin] != '\0');
-      if (++self->begin == MRL_RING_HISTORY_LEN)
-        self->begin = 0;
+      if (++self->begin == MRL_RING_HISTORY_LEN) self->begin = 0;
     }
-  } while (c != '\0');
+  } while (ch != '\0');
 
-#ifdef MRL_DEBUG_HISTORY
-  mrl_hist_print(self);
-#endif // MRL_DEBUG_HISTORY
+  return true;
 }
 //-----------------------------------------------------------------------------
 // backward history
-static int mrl_hist_backward(mrl_hist_t *self, char *buf)
+// [used inside mrl_hist_search() only]
+INLINE bool mrl_hist_backward(mrl_hist_t *self)
 {
-  if (self->cur != self->begin)
-  {
-    int i, len = 0;
+  int i;
+  if (self->cur == self->begin) return false; // already at the begin
    
-    if (self->cur < 0)
-      i = self->cur = self->last;
-    else
-    {
-      i = self->cur - 2;
-      if (i < 0) i += MRL_RING_HISTORY_LEN;
+  i = self->cur - 2;
+  if (i < 0) i += MRL_RING_HISTORY_LEN;
 
-      while (self->buf[i] != '\0')
-        if (--i < 0) i += MRL_RING_HISTORY_LEN; 
+  while (self->buf[i] != '\0')
+    if (--i < 0) i += MRL_RING_HISTORY_LEN; 
 
-      if (++i == MRL_RING_HISTORY_LEN) i = 0;
-      self->cur = i;
-    }
+  if (++i == MRL_RING_HISTORY_LEN) i = 0;
+  self->cur = i;
 
-    while ((*buf++ = self->buf[i]) != '\0')
-    {
-      if (++i == MRL_RING_HISTORY_LEN) i = 0;
-      len++;
-    }
-
-    return len;
-  }
-  return -1;
+  return true;
 }
 //-----------------------------------------------------------------------------
 // forward history
-static int mrl_hist_forward(mrl_hist_t *self, char *buf)
+// [used inside mrl_hist_search() only]
+INLINE bool mrl_hist_forward(mrl_hist_t *self)
 {
-  if (self->cur >= 0 && self->cur != self->last)
+  if (self->cur == self->last) return false; // already at the end
+
+  while (self->buf[self->cur] != '\0')
+    if (++self->cur == MRL_RING_HISTORY_LEN) self->cur = 0;
+
+  if (++self->cur == MRL_RING_HISTORY_LEN) self->cur = 0;
+
+  return true;
+}
+//-----------------------------------------------------------------------------
+// get string from history by current index (return string length)
+// [used inside mrl_hist_search() only]
+INLINE int mrl_hist_get(mrl_hist_t *self, char *buf)
+{
+  int len = 0, i = self->cur;
+    
+  while ((*buf++ = self->buf[i]) != '\0')
   {
-    int len = 0;
-    int i = self->cur;
-
-    while (self->buf[i] != '\0')
-      if (++i == MRL_RING_HISTORY_LEN) i = 0;
-
     if (++i == MRL_RING_HISTORY_LEN) i = 0;
-    self->cur = i;
-
-    while ((*buf++ = self->buf[i]) != '\0')
-    {
-      if (++i == MRL_RING_HISTORY_LEN) i = 0;
-      len++;
-    }
-
-    return len;
+    len++;
   }
-  return -1;
+
+  return len;
+}
+//-----------------------------------------------------------------------------
+// search history
+static int mrl_hist_search(mrl_hist_t *self, int dir, char *str)
+{
+  if (self->last == self->end) return -1; // ring buffer empty
+
+  if (dir == MRL_HIST_BACKWARD)
+  {
+    if (self->cur < 0)
+    { // enter to history search mode
+      int cur = self->last;
+      self->first_save = mrl_hist_save(self, str);
+      self->cur = cur;
+    }
+    else
+      if (!mrl_hist_backward(self)) return -1; // no olderst history
+  }
+  else // dir == MRL_HIST_FORWARD
+  {
+    if (self->cur < 0) return -1; // no history search mode
+    if (!mrl_hist_forward(self))
+    { // no newrest history
+      if (!self->first_save)
+      { // return empty string
+        self->cur = -1; // go out from history search mode
+        *str = '\0';
+        return 0;
+      }
+      return -1;
+    }
+  }
+
+  return mrl_hist_get(self, str);
 }
 //-----------------------------------------------------------------------------
 #endif // MRL_USE_HISTORY
 //-----------------------------------------------------------------------------
-INLINE void mrl_print_prompt(mrl_t *self)
+INLINE void mrl_terminal_prompt(mrl_t *self)
 {
   self->print(self->prompt);
 }
@@ -213,11 +235,9 @@ static void mrl_terminal_cursor(mrl_t *self, int cursor)
   char str[16];
   cursor += self->prompt_len;
 #ifdef MRL_USE_LIBC_STDIO
-  if (cursor == 0)
-    strcpy(str, "\r");
-  else
-    snprintf(str, sizeof(str) - 1, "\r\033[%iC", cursor);
-    //snprintf(str, sizeof(str) - 1, "\033[%iG", cursor + 1);
+  if (cursor == 0) strcpy(str, "\r");
+  else snprintf(str, sizeof(str) - 1, "\r\033[%iC", cursor);
+  //else snprintf(str, sizeof(str) - 1, "\033[%iG", cursor + 1);
 #else
   char *ptr = str;
   *ptr++ = '\r';
@@ -225,7 +245,7 @@ static void mrl_terminal_cursor(mrl_t *self, int cursor)
   {
     *ptr++ = '\033';
     *ptr++ = '[';
-     ptr  += mrl_int2str(cursor, ptr);
+     ptr  += mrl_uint2str(cursor, ptr);
     *ptr++ = 'C';
   }
   *ptr  = '\0';
@@ -234,7 +254,7 @@ static void mrl_terminal_cursor(mrl_t *self, int cursor)
 }
 //-----------------------------------------------------------------------------
 // cursor LEFT or Ctrl+B pressed
-INLINE void mrl_cursor_back(mrl_t *self)
+static void mrl_cursor_back(mrl_t *self)
 {
   if (self->cursor > 0)
   {
@@ -244,7 +264,7 @@ INLINE void mrl_cursor_back(mrl_t *self)
 }
 //-----------------------------------------------------------------------------
 // cursor RIGHT or Ctrl+F pressed
-INLINE void mrl_cursor_forward(mrl_t *self)
+static void mrl_cursor_forward(mrl_t *self)
 {
   if (self->cursor < self->cmdlen)
   {
@@ -256,19 +276,17 @@ INLINE void mrl_cursor_forward(mrl_t *self)
 // HOME or Ctrl+A pressed
 INLINE void mrl_cursor_home(mrl_t *self)
 {
-  self->cursor = 0;
-  mrl_terminal_cursor(self, 0);
+  mrl_terminal_cursor(self, self->cursor = 0);
 }
 //-----------------------------------------------------------------------------
 // END or Ctrl+E pressed
 INLINE void mrl_cursor_end(mrl_t *self)
 {
-  self->cursor = self->cmdlen;
-  mrl_terminal_cursor(self, self->cursor);
+  mrl_terminal_cursor(self, self->cursor = self->cmdlen);
 }
 //-----------------------------------------------------------------------------
-// BACKSPACE or Ctrl+U pressed
-static void mrl_backspace(mrl_t *self)
+// BACKSPACE or Ctrl+H pressed
+INLINE void mrl_backspace(mrl_t *self)
 {
   if (self->cursor > 0)
   {
@@ -284,7 +302,7 @@ static void mrl_backspace(mrl_t *self)
 }
 //-----------------------------------------------------------------------------
 // DELETE pressed
-static void mrl_delete(mrl_t *self)
+INLINE void mrl_delete(mrl_t *self)
 {
   if (self->cursor < self->cmdlen)
   {
@@ -297,34 +315,25 @@ static void mrl_delete(mrl_t *self)
   }
 }
 //-----------------------------------------------------------------------------
-static void mrl_hist_search(mrl_t *self, int dir)
+// Alt+BACKSPACE or Ctrl+U presed
+static void mrl_del_before_cursor(mrl_t *self)
+{
+  memmove(self->cmdline,
+          self->cmdline + self->cursor,
+          self->cmdlen - self->cursor + 1);
+  self->cmdlen -= self->cursor;
+  self->cursor = 0;
+  mrl_terminal_cursor(self, 0);
+  mrl_terminal_print(self, self->cmdline);
+  mrl_terminal_cursor(self, self->cursor = 0);
+}
+//-----------------------------------------------------------------------------
+#ifdef MRL_USE_HISTORY
+// search history by UP/DOWN or Ctrl-P/Ctrl-N
+static void mrl_hist(mrl_t *self, int dir)
 {
   int len;
-
-  if (dir == MRL_HIST_BACKWARD)
-  {
-    if (self->hist.cur < 0)
-    { // FIXME
-      self->hist_state = !!self->cmdlen;
-
-      if (self->hist_state && self->hist.end != self->hist.last)
-      { // save not empty string to ring buffer
-	mrl_hist_save(&self->hist, self->cmdline);
-	self->hist.cur = self->hist.last; // FIXME
-      }
-    }
-    len = mrl_hist_backward(&self->hist, self->cmdline);
-  }
-  else // dir == MRL_HIST_FORWARD
-  {
-    len = mrl_hist_forward(&self->hist, self->cmdline);
-    if (0 && len < 0 && !self->hist_state)
-    {
-      self->cmdline[0] = '\0';
-      self->cmdlen = len = 0;
-    }
-  }
-    
+  len = mrl_hist_search(&self->hist, dir, self->cmdline);
   if (len >= 0)
   {
     self->cursor = self->cmdlen = len;
@@ -332,6 +341,7 @@ static void mrl_hist_search(mrl_t *self, int dir)
     mrl_terminal_print(self, self->cmdline);
   }
 }
+#endif // MRL_USE_HISTORY
 //-----------------------------------------------------------------------------
 // split cmdline to tkn array and return nmb of token
 // replace all whitespaces to '\0'
@@ -348,7 +358,7 @@ static int mrl_split(char *str, int len, char const **argv)
 
     argv[argc++] = str + i;
 
-    if (argc >= MRL_COMMAND_TOKEN_NMB) return -1;
+    if (argc >= MRL_COMMAND_TOKEN_NUM) break;
 
     // skip NOT whitespaces
     while ((str[i] != ' ') && (i < len))
@@ -360,20 +370,11 @@ static int mrl_split(char *str, int len, char const **argv)
   return argc;
 }
 //-----------------------------------------------------------------------------
-// back replace '\0' to whitespaces
-static void mrl_back_replace_spaces(char *str, int len)
-{
-  int i;
-  for (i = 0; i < len; i++)
-    if (str[i] == '\0')
-      str[i] = ' ';
-}
-//-----------------------------------------------------------------------------
 // insert len char of text at cursor position
 static void mrl_insert_text(mrl_t *self, const char *text, int len)
 {
-  if (len > MRL_COMMAND_LINE_LEN - self->cmdlen) 
-    len = MRL_COMMAND_LINE_LEN - self->cmdlen;
+  if (len > MRL_COMMAND_LINE_LEN - 1 - self->cmdlen) 
+    len = MRL_COMMAND_LINE_LEN - 1 - self->cmdlen;
   
   if (len > 0)
   {
@@ -393,10 +394,18 @@ static void mrl_insert_text(mrl_t *self, const char *text, int len)
 }
 //-----------------------------------------------------------------------------
 #ifdef MRL_USE_COMPLETE
-static int mrl_common_len(char **argv)
+// back replace '\0' to whitespaces
+static void mrl_back_replace_spaces(char *str, int len)
 {
   int i;
-  int j;
+  for (i = 0; i < len; i++)
+    if (str[i] == '\0')
+      str[i] = ' ';
+}
+//-----------------------------------------------------------------------------
+static int mrl_common_len(char **argv)
+{
+  int i, j;
   char *shortest = argv[0];
   int shortlen = strlen(shortest);
 
@@ -418,17 +427,18 @@ static int mrl_common_len(char **argv)
   return i;
 }
 //-----------------------------------------------------------------------------
-static void mrl_get_complite(mrl_t *self)
+// TAB pressed
+INLINE void mrl_get_complite(mrl_t *self)
 {
   int argc;
-  char const *argv[MRL_COMMAND_TOKEN_NMB + 1];
+  char const *argv[MRL_COMMAND_TOKEN_NUM + 1];
   char **compl_argv;
   
   if (self->get_completion == NULL) return; // callback was not set
   
   argc = mrl_split(self->cmdline, self->cursor, argv);
 
-  if (self->cmdline[self->cursor - 1] == '\0')
+  if (self->cmdline[self->cursor - 1] == '\0') // it was whitespace
   {
     argv[argc++] = "";
     argv[argc]   = NULL;
@@ -440,25 +450,24 @@ static void mrl_get_complite(mrl_t *self)
 
   if (compl_argv[0] != NULL)
   {
-    int i = 0;
-    int len;
+    int len, i = 0;
 
     if (compl_argv[1] == NULL)
-    {
+    { // only one variant
       len = strlen(compl_argv[0]);
     }
     else
-    {
+    { // some variants
       len = mrl_common_len(compl_argv);
       mrl_terminal_newline(self);
-      while (compl_argv [i] != NULL)
+      while (compl_argv[i] != NULL)
       {
         self->print(compl_argv[i]);
         self->print (" ");
         i++;
       }
       mrl_terminal_newline(self);
-      mrl_print_prompt(self);
+      mrl_terminal_prompt(self);
     }
     
     if (len)
@@ -468,6 +477,10 @@ static void mrl_get_complite(mrl_t *self)
       if (compl_argv[1] == NULL) 
         mrl_insert_text(self, " ", 1);
     }
+
+    mrl_terminal_cursor(self, 0);
+    mrl_terminal_print(self, self->cmdline);
+    mrl_terminal_cursor(self, self->cursor);
   } 
 }
 #endif // MRL_USE_COMPLETE
@@ -475,40 +488,27 @@ static void mrl_get_complite(mrl_t *self)
 static void mrl_new_line_handler(mrl_t *self)
 {
   int argc;
-  char const *argv[MRL_COMMAND_TOKEN_NMB + 1];
-  char *cmd = self->cmdline;
-  int len = self->cmdlen;
+  char const *argv[MRL_COMMAND_TOKEN_NUM + 1];
 
-#if 0
-  char *end = cmd + len;
-  // trim whitespaces
-  while (*cmd   == ' ') { len--; cmd++; }
-  while (*--end == ' ') { len--;        }
-#endif
+#ifdef MRL_USE_HISTORY
+  mrl_hist_save(&self->hist, self->cmdline);
 
 #ifdef MRL_DEBUG_HISTORY
   mrl_cmd_print(self);
+  mrl_hist_print(&self->hist);
 #endif // MRL_DEBUG_HISTORY
-  
+#endif // MRL_USE_HISTORY
 
-#ifdef MRL_USE_HISTORY
-  cmd[len] = '\0';
-  if (len > 0)
-    mrl_hist_save(&self->hist, cmd);
-#endif
-
-  argc = mrl_split(cmd, len, argv);
-
-  if (argc < 0)
-    self->print("ERROR: too many argumens" MRL_ENDL);
-  else if ((argc > 0) && (self->execute != NULL))
-    self->execute(argc, argv);
-  
   mrl_terminal_newline(self);
-  mrl_print_prompt(self);
+  
+  argc = mrl_split(self->cmdline, self->cmdlen, argv);
+
+  if (argc > 0 && self->execute != NULL) self->execute(argc, argv);
+  
   self->cmdline[0] = '\0';
   self->cmdlen = 0;
   self->cursor = 0;
+  mrl_terminal_prompt(self);
 }
 //-----------------------------------------------------------------------------
 void mrl_init(mrl_t *self, void (*print)(const char *))
@@ -538,15 +538,27 @@ void mrl_init(mrl_t *self, void (*print)(const char *))
 
   self->print = print;
   self->execute = NULL;
+#ifdef MRL_USE_COMPLETE
   self->get_completion = NULL;
+#endif
 
 #ifdef MRL_USE_CTLR_C
   self->sigint = NULL;
 #endif
 
 #ifdef MRL_ENABLE_INIT_PROMPT
-  mrl_print_prompt(self);
+  self->print("\r\033[K"); // erase all string and go to begin
+  mrl_terminal_prompt(self);
 #endif
+}
+//-----------------------------------------------------------------------------
+void mrl_prompt(mrl_t *self)
+{
+  self->cmdline[0] = '\0';
+  self->cmdlen = 0;
+  self->cursor = 0;
+  self->print("\r\033[K"); // erase all string and go to begin
+  mrl_terminal_prompt(self);
 }
 //-----------------------------------------------------------------------------
 #ifdef MRL_USE_ESC_SEQ
@@ -554,22 +566,25 @@ void mrl_init(mrl_t *self, void (*print)(const char *))
 static void mrl_escape_process(mrl_t *self, char ch)
 {
   if (ch == '[')
-  {
     self->escape_seq = MRL_ESC_BRACKET;
+  else if (ch == MRL_KEY_DEL)
+  { // Alt+BACKSPACE
+    mrl_del_before_cursor(self);
+    self->escape_seq = MRL_ESC_STOP;
   }
   else if (self->escape_seq == MRL_ESC_BRACKET)
   {
     if (ch == 'A')
     { // cursor UP
 #ifdef MRL_USE_HISTORY
-      mrl_hist_search(self, MRL_HIST_BACKWARD);
+      mrl_hist(self, MRL_HIST_BACKWARD);
 #endif
       self->escape_seq = MRL_ESC_STOP;
     }
     else if (ch == 'B')
     { // cursor DOWN
 #ifdef MRL_USE_HISTORY
-      mrl_hist_search(self, MRL_HIST_FORWARD);
+      mrl_hist(self, MRL_HIST_FORWARD);
 #endif
       self->escape_seq = MRL_ESC_STOP;
     }
@@ -583,18 +598,22 @@ static void mrl_escape_process(mrl_t *self, char ch)
       mrl_cursor_back(self);
       self->escape_seq = MRL_ESC_STOP;
     }
+    else if (ch == 'H')
+    { // HOME
+      mrl_cursor_home(self);
+      self->escape_seq = MRL_ESC_STOP;
+    } 
+    else if (ch == 'F')
+    { // END
+      mrl_cursor_end(self);
+      self->escape_seq = MRL_ESC_STOP;
+    } 
     else if (ch == '7')
-    {
       self->escape_seq = MRL_ESC_HOME;
-    }
     else if (ch == '8')
-    {
       self->escape_seq = MRL_ESC_END;
-    } 
     else if (ch == '3')
-    {
       self->escape_seq = MRL_ESC_DELETE;
-    } 
     else
       self->escape_seq = MRL_ESC_STOP; // unknown escape sequence, stop
   }
@@ -680,14 +699,7 @@ int mrl_insert_char(mrl_t *self, int ch)
     break;
 
     case MRL_KEY_NAK: // Ctrl+U
-       memmove(self->cmdline,
-	       self->cmdline + self->cursor,
-	       self->cmdlen - self->cursor + 1);
-       self->cmdlen -= self->cursor;
-       self->cursor = 0;
-       mrl_terminal_cursor(self, 0);
-       mrl_terminal_print(self, self->cmdline);
-       mrl_terminal_cursor(self, self->cursor = 0);
+      mrl_del_before_cursor(self);
     break;
 
     case MRL_KEY_VT:  // Ctrl+K
@@ -714,24 +726,24 @@ int mrl_insert_char(mrl_t *self, int ch)
 
     case MRL_KEY_DLE: // Ctrl+P
 #ifdef MRL_USE_HISTORY
-    mrl_hist_search(self, MRL_HIST_BACKWARD);
+    mrl_hist(self, MRL_HIST_BACKWARD);
 #endif
     break;
 
     case MRL_KEY_SO: // Ctrl+N
 #ifdef MRL_USE_HISTORY
-    mrl_hist_search(self, MRL_HIST_FORWARD);
+    mrl_hist(self, MRL_HIST_FORWARD);
 #endif
     break;
 
     case MRL_KEY_DEL: // BACKSPACE
-    case MRL_KEY_BS:  // CTLR+U
+    case MRL_KEY_BS:  // CTLR+H
       mrl_backspace(self);
     break;
 
     case MRL_KEY_DC2: // Ctrl+R
       mrl_terminal_newline(self);
-      mrl_print_prompt(self);
+      mrl_terminal_prompt(self);
       //mrl_terminal_cursor(self, 0);
       mrl_terminal_print(self, self->cmdline);
       mrl_terminal_cursor(self, self->cursor);
@@ -752,7 +764,7 @@ int mrl_insert_char(mrl_t *self, int ch)
         mrl_insert_text(self, (const char*) &ch, 1);
     break;
   } // switch (ch)
-
+  
   return 0;
 }
 //----------------------------------------------------------------------------
@@ -766,10 +778,10 @@ int mrl_uint2str(unsigned value, char *buf)
   } while (value);
   buf[n = i--] = '\0';
   while (j < i)
-  { // echange bytes
-    char c   = buf[j];
+  { // exchange bytes
+    char ch  = buf[j];
     buf[j++] = buf[i];
-    buf[i--] = c;
+    buf[i--] = ch;
   }
   return n;
 }

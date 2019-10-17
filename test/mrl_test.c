@@ -14,24 +14,25 @@
 #include "mrl.h"
 //-----------------------------------------------------------------------------
 // definition commands word
-#define _CMD_HELP  "help"
-#define _CMD_CLEAR "clear"
-#define _CMD_LIST  "list"
-#define _CMD_LISP  "lisp" // for demonstration completion on 'l + <TAB>'
-#define _CMD_NAME  "name"
-#define _CMD_VALUE "value"
-#define _CMD_VER   "version"
+#define _CMD_HELP   "help"
+#define _CMD_CLEAR  "clear"
+#define _CMD_LIST   "list"
+#define _CMD_LISP   "lisp" // for demonstration completion on 'l + <TAB>'
+#define _CMD_NAME   "name"
+#define _CMD_VALUE  "value"
+#define _CMD_VER    "version"
+#define _CMD_PROMPT "prompt"
 
 // sub commands for version command
 #define _SCMD_MRL  "microrl"
 #define _SCMD_DEMO "demo"
 
-#define _NUM_OF_CMD 7
+#define _NUM_OF_CMD 8
 #define _NUM_OF_VER_SCMD 2
 
 // available  commands
-char *keyworld[] = { _CMD_HELP, _CMD_CLEAR, _CMD_LIST, _CMD_NAME, _CMD_VALUE,
-                     _CMD_VER, _CMD_LISP };
+char *keyworld[] = { _CMD_HELP, _CMD_CLEAR, _CMD_LIST, _CMD_NAME,
+                     _CMD_VALUE, _CMD_VER, _CMD_LISP, _CMD_PROMPT };
 
 // version subcommands
 char *ver_keyworld[] = { _SCMD_MRL, _SCMD_DEMO };
@@ -45,6 +46,12 @@ char name[_NAME_LEN];
 
 // 'value' var for store integer value
 int value;
+
+// 'prompt'
+char prompt[80];
+  
+// MicroRL object
+mrl_t mrl;
 //-----------------------------------------------------------------------------
 // get char user pressed, no waiting Enter input
 static char get_char()
@@ -86,6 +93,7 @@ static void print_help()
   print("\tvalue [value] - print or set integer value\n\r");
   print("\tlisp - dummy command for demonstation auto-completion, "
         "while inputed 'l+<TAB>'\n\r");
+  print("\tprompt PROMPT - set new prompt\n\r");
 }
 //-----------------------------------------------------------------------------
 // execute callback for microrl library
@@ -93,16 +101,16 @@ static void print_help()
 static int execute(int argc, const char * const * argv)
 {
   int i;
-#if 1
+#ifdef MRL_DEBUG
   printf("argc=%i\r\n", argc);
   for (i = 0; i < argc; i++)
     printf("argv[%i]='%s'\r\n", i, argv[i]);
   printf("argv[%i]=%p\r\n", argc, argv[argc]);
 #endif
 
-  i = 0;
  
   // just iterate through argv word and compare it with your commands
+  i = 0;
   if (argc > 0)
   {
     if (strcmp(argv[i], _CMD_HELP) == 0)
@@ -137,8 +145,8 @@ static int execute(int argc, const char * const * argv)
       }
       else
       {
-	char str[80];
-	snprintf(str, sizeof(str) - 1, "%i", value);
+        char str[80];
+        snprintf(str, sizeof(str) - 1, "%i", value);
         print(str);
         print("\n\r");
       }
@@ -181,6 +189,16 @@ static int execute(int argc, const char * const * argv)
         print ("\n\r");
       }
     }
+    else if (strcmp(argv[i], _CMD_PROMPT) == 0)
+    {
+      if (++i < argc)
+        strcpy(prompt, argv[i]);
+      else
+        strcpy(prompt, "");
+      strcat(prompt, " ");
+
+      mrl_set_prompt(&mrl, prompt, strlen(prompt));
+    }
     else
     {
       print("command ");
@@ -206,9 +224,9 @@ static char **complete(int argc, const char * const * argv)
     // iterate through our available token and match it
     for (i = 0; i < _NUM_OF_CMD; i++)
     { // if token is matched (text is part of our token starting from 0 char)
-      if (strstr(keyworld [i], bit) == keyworld [i])
+      if (strstr(keyworld [i], bit) == keyworld[i])
       {  // add it to completion set
-        compl_world [j++] = keyworld [i];
+        compl_world[j++] = keyworld[i];
       }
     }
   }
@@ -239,14 +257,21 @@ static void sigint()
   print ("CTRL-C catched!\r\n");
 }
 #endif // MRL_USE_CTRL_C
+
+//-----------------------------------------------------------------------------
+const char * custom_prompt = "\033[35m->\033[0m ";
+const int custom_prompt_len = 3;
 //-----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-  // MicroRL object
-  mrl_t mrl;
-
   // call init with ptr to microrl instance and print callback
   mrl_init(&mrl, print);
+
+  // set custom prompt
+  mrl_set_prompt(&mrl, custom_prompt, custom_prompt_len);
+  
+  // show prompt
+  mrl_prompt(&mrl);
 
   // set callback for execute
   mrl_set_execute_cb(&mrl, execute);

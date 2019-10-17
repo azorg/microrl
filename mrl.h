@@ -7,6 +7,7 @@
 #define MRL_H
 //-----------------------------------------------------------------------------
 #include "mrl_conf.h"
+#include <stdbool.h>
 //-----------------------------------------------------------------------------
 #ifndef INLINE
 #  define INLINE static inline
@@ -21,6 +22,7 @@ typedef struct {
   int end;   // end index (index of future line) 
   int cur;   // index of current string in buffer
   int last;  // index of last string in buffer
+  bool first_save;
 } mrl_hist_t;
 #endif // MRL_USE_HISTORY
 //-----------------------------------------------------------------------------
@@ -28,7 +30,6 @@ typedef struct {
 typedef struct {
 #ifdef MRL_USE_HISTORY
   mrl_hist_t hist; // history object
-  int hist_state;
 #endif
 
 #ifdef MRL_USE_ESC_SEQ
@@ -77,13 +78,10 @@ INLINE void mrl_set_prompt(mrl_t *self, const char *prompt, int prompt_len)
 {
   self->prompt     = prompt;
   self->prompt_len = prompt_len;
-  //...
 }
 //-----------------------------------------------------------------------------
-// FIXME
-// set echo mode (true/false), using for disabling echo for password input
-// echo mode will enabled after user press Enter.
-//void mrl_set_echo(int);
+// print prompt
+void mrl_prompt(mrl_t *self);
 //-----------------------------------------------------------------------------
 // pointer to callback func, that called when user press 'Enter'
 // execute func param: argc - argument count, argv - pointer array to

@@ -17,7 +17,7 @@ HDRS := ../mrl.h ../mrl_conf.h ../mrl_defs.h
 #----------------------------------------------------------------------------
 #INC_DIRS  := ..
 #INC_FLAGS := 
-DEFS      := -DMRL_DEBUG -DMRL_DEBUG_HISTORY
+#DEFS      := -DMRL_DEBUG -DMRL_DEBUG_HISTORY
 OPTIM     := -Os -fomit-frame-pointer
 WARN      := -Wall
 
@@ -30,7 +30,7 @@ PREFIX    := /opt
 #_AS  := @as
 #_CC  := @gcc
 #_CXX := @g++
-#_LD  := @g++
+_LD  := @g++
 #----------------------------------------------------------------------------
 include Makefile.skel
 #============================================================================
