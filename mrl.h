@@ -52,7 +52,7 @@ typedef struct {
   void (*print) (const char *str);
 
   // ptr to 'execute' callback
-  int (*execute) (int argc, char * const argv[]);
+  void (*execute) (int argc, char * const argv[]);
   
 #ifdef MRL_USE_COMPLETE
   // ptr to 'completion' callback (optoinal)
@@ -80,14 +80,20 @@ INLINE void mrl_set_prompt(mrl_t *self, const char *prompt, int prompt_len)
   self->prompt_len = prompt_len;
 }
 //-----------------------------------------------------------------------------
-// print prompt
+// erase all line and go to begin
+void mrl_clear(mrl_t *self);
+//-----------------------------------------------------------------------------
+// print prompt (reset cmdline and cursor position)
 void mrl_prompt(mrl_t *self);
+//-----------------------------------------------------------------------------
+// refresh line (print prompt + restore cmdline and cursor position)
+void mrl_refresh(mrl_t *self);
 //-----------------------------------------------------------------------------
 // pointer to callback func, that called when user press 'Enter'
 // execute func param: argc - argument count, argv - pointer array to
 // token string
 INLINE void mrl_set_execute_cb(mrl_t *self,
-                               int (*execute)(int, char * const[]))
+                               void (*execute)(int, char * const[]))
 {
   self->execute = execute;
 }

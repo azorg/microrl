@@ -26,7 +26,9 @@
 // #define MRL_PROMPT_DEFAULT "\033[34m=>\033[0m " - blue color
 // #define MRL_PROMPT_DEFAULT "\033[35m=>\033[0m " - magenta color
 // #define MRL_PROMPT_DEFAULT "=> "                - default color
-#define MRL_PROMPT_DEFAULT "\033[31m=>\033[0m "
+//#define MRL_PROMPT_DEFAULT "=> "
+//#define MRL_PROMPT_DEFAULT "\033[31m=>\033[0m "
+#define MRL_PROMPT_DEFAULT "\033[32m=>\033[0m "
 //-----------------------------------------------------------------------------
 // Define prompt text (without ESC sequence, only text) prompt length,
 // it needs because if you use ESC sequence, it's not possible detect
@@ -85,8 +87,10 @@
 // execution callback (0xHHH, 0OOOO, 0bBBBB format supported)
 #define MRL_STR2INT
 //-----------------------------------------------------------------------------
+// FIXME: noisly code!
 // Selected new line symbol(s)
-#define MRL_ENDL_LF
+//#define MRL_ENDL_LF // Linux console
+#define MRL_ENDL_CR_LF // one CR or one LF - in, CR+LF - out (minicom/Linux)
 
 #if defined(MRL_ENDL_LF)
 #  define MRL_ENDL "\n"
@@ -95,7 +99,9 @@
 #elif defined(MRL_ENDL_CRLF)
 #  define MRL_ENDL "\r\n"
 #elif defined(MRL_ENDL_LFCR)
-# define MRL_ENDL "\n\r"
+#  define MRL_ENDL "\n\r"
+#elif defined(MRL_ENDL_CR_LF)
+#  define MRL_ENDL "\r\n"
 #else
 #  error "You must define new line symbol."
 #endif

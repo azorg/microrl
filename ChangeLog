@@ -1,3 +1,7 @@
+2019.10.18:
+ * add MRL_ENDL_CR_LF
+ * add mrl_clear(), mrl_prompt() and mrl_refresh()
+
 2019.10.17:
  * test new ring buffer
  * update completion test

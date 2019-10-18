@@ -564,13 +564,26 @@ void mrl_init(mrl_t *self, void (*print)(const char*))
 #endif
 }
 //-----------------------------------------------------------------------------
+void mrl_clear(mrl_t *self)
+{
+  self->print("\r\033[K");
+}
+//-----------------------------------------------------------------------------
 void mrl_prompt(mrl_t *self)
 {
   self->cmdline[0] = '\0';
   self->cmdlen = 0;
   self->cursor = 0;
-  self->print("\r\033[K"); // erase all string and go to begin
+  mrl_clear(self);
   mrl_terminal_prompt(self);
+}
+//-----------------------------------------------------------------------------
+void mrl_refresh(mrl_t *self)
+{
+  mrl_clear(self);
+  mrl_terminal_prompt(self);
+  mrl_terminal_print(self, self->cmdline);
+  mrl_terminal_cursor(self, self->cursor);
 }
 //-----------------------------------------------------------------------------
 #ifdef MRL_USE_ESC_SEQ
@@ -689,10 +702,15 @@ int mrl_insert_char(mrl_t *self, int ch)
     if (self->tmpch == MRL_KEY_LF)
       mrl_new_line_handler(self);
     break;
-#else
+#elif defined(MRL_ENDL_LF)
     case MRL_KEY_CR:
     break;
 
+    case MRL_KEY_LF:
+      mrl_new_line_handler(self);
+    break;
+#else // defined(MRL_ENDL_CR_LF)
+    case MRL_KEY_CR:
     case MRL_KEY_LF:
       mrl_new_line_handler(self);
     break;

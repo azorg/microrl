@@ -102,7 +102,7 @@ static void print_help()
 //-----------------------------------------------------------------------------
 // execute callback for microrl library
 // do what you want here, but don't write to argv!!! read only!!
-static int execute(int argc, char * const argv[])
+static void execute(int argc, char * const argv[])
 {
   int i;
 #ifdef MRL_DEBUG
@@ -215,7 +215,6 @@ static int execute(int argc, char * const argv[])
       print(" not found\n\r");
     }
   }
-  return 0;
 }
 //-----------------------------------------------------------------------------
 #ifdef MRL_USE_COMPLETE
@@ -286,7 +285,8 @@ int main(int argc, char **argv)
   mrl_set_prompt(&mrl, custom_prompt, custom_prompt_len);
   
   // show prompt
-  mrl_prompt(&mrl);
+  //mrl_prompt(&mrl);
+  mrl_refresh(&mrl);
 
   // set callback for execute
   mrl_set_execute_cb(&mrl, execute);

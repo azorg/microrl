@@ -124,7 +124,8 @@ int main(int argc, char ** argv)
 ```
 See example library usage in test folder.
 
-## 5. MicroRL fork tasks ([+]FIXED[+], [-]TODO and [~]WORK)
+
+## 5. MicroRL fork tasks ([+]FIXED, [-]TODO and [~]WORK)
 
  * [+] add DELETE key support
 
@@ -142,7 +143,15 @@ See example library usage in test folder.
 
  * [~] refactor sources, fix old bugs and add new :-)
 
-## 6. License
+ * [+] add MRL_ENDL_CR_LF config (one CR or one LF - in, CR+LF - out)
+
+ * [-] auto detection end of line (CR/LF/CR+LF/LF+CR) 
+
+## 6. Notes
+
+ * for using ANSI colors start `minicom` with `-c on` option
+
+## 7. License
 
 Licensed under the Apache License, Version 2.0 (see "LICENSE" and "NOTICE").
 
