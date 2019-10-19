@@ -16,8 +16,8 @@
 // command/options description structure
 typedef struct cmd_ cmd_t;
 struct cmd_ {
-  int index;         // index in tree
-  int parent;        // index of parent for options (or -1 for root)
+  int id;            // ID in tree (>=0)
+  int parent;        // parent ID for options (or -1 for root)
   const char *name;  // command/option name
   int arg_num;       // number of argiments (or 0)
   void (*fn)(int argc, char* const argv[], const cmd_t*); // callback function
@@ -47,7 +47,7 @@ static void fn_help(int argc, char* const argv[], const cmd_t *cmd)
 {
   const cmd_t *opt = (const cmd_t*) cmd_tree;
 
-  if (cmd->index == 0) // index of "help"
+  if (cmd->id == 0) // ID of "help"
     printf("MicroRL test #2\r\n"
 	   "Use TAB key for completion\r\n"
 	   "Command:\r\n");
@@ -57,8 +57,8 @@ static void fn_help(int argc, char* const argv[], const cmd_t *cmd)
 
   while (opt->name != NULL)
   {
-    if ((opt->parent < 0           && cmd->index == 0) || // root help
-	(opt->parent == cmd->index && cmd->index != 0))   // option help
+    if ((opt->parent < 0        && cmd->id == 0) || // root help
+	(opt->parent == cmd->id && cmd->id != 0))   // option help
     {
       char opt_info[32];
       *opt_info = '\0';
@@ -120,24 +120,25 @@ static void fn_fl_erase(int argc, char* const argv[], const cmd_t *cmd)
 //-----------------------------------------------------------------------------
 // all commands and options tree
 cmd_t const cmd_tree[] = {
-  {  0, -1, "help",    0, fn_help,     "print this help" }, // it must be first!
-  {  1, -1, "version", 0, fn_help,     "print version" },
-  {  2,  1, "microrl", 0, fn_ver_mrl,  "print version of MicroRL" },
-  {  3,  1, "demo",    0, fn_ver_demo, "print version of this demo test" },
-  {  4, -1, "clear",   0, fn_clear,    "clear screen" },
-  {  5, -1, "value",   1, fn_value,    "get/set 'value'" },
-  {  6, -1, "flash",   0, fn_help,     "FLASH parameters" },
-  {  7,  6, "page",    1, fn_fl_page,  "get/set FLASH page number" },
-  {  8,  6, "erase",   0, fn_fl_erase, "erase FLASH" },
-  { -1, -1, NULL,      0, NULL,        NULL },
+  // ID  Par Name     ArgN Callback      Help
+  {  0, -1, "help",    0, fn_help,      "print this help" }, // it must be first!
+  {  1, -1, "version", 0, fn_help,      "print version" },
+  {  2,  1, "microrl", 0, fn_ver_mrl,   "print version of MicroRL" },
+  {  3,  1, "demo",    0, fn_ver_demo,  "print version of this demo test" },
+  {  4, -1, "clear",   0, fn_clear,     "clear screen" },
+  {  5, -1, "value",   1, fn_value,     "get/set 'value'" },
+  {  6, -1, "flash",   0, fn_help,      "FLASH parameters" },
+  {  7,  6, "page",    1, fn_fl_page,   "get/set FLASH page number" },
+  {  8,  6, "erase",   0, fn_fl_erase,  "erase FLASH" },
+  { -1, -1, NULL,      0, NULL,         NULL },
 };
 //-----------------------------------------------------------------------------
 // execute callback for microrl library
 // do what you want here, but don't write to argv!!! read only!!
 static void execute(int argc, char * const argv[])
 {
-  int i, parent, arg_shift;
-  const cmd_t *found;
+  int i, parent = -1, arg_shift;
+  const cmd_t *found = (cmd_t*) NULL;
 
 #ifdef MRL_DEBUG
   printf("argc=%i\r\n", argc);
@@ -146,8 +147,6 @@ static void execute(int argc, char * const argv[])
   printf("argv[%i]=%p\r\n", argc, argv[argc]);
 #endif
 
-  parent = -1;
-  found = (cmd_t*) NULL;
   for (i = 0; i < argc; i++)
   {
     const cmd_t *cmd = cmd_tree;
@@ -156,7 +155,7 @@ static void execute(int argc, char * const argv[])
       if (cmd->parent == parent && strcmp(cmd->name, argv[i]) == 0)
       { // command/option found
 	found     = cmd;
-	parent    = cmd->index;
+	parent    = cmd->id;
 	arg_shift = i + 1;
 	i        += cmd->arg_num;
 	break;
@@ -175,7 +174,7 @@ static void execute(int argc, char * const argv[])
 // completion callback for microrl library
 static const char** complete(int argc, char * const argv[])
 {
-  int i, parent, count;
+  int i, parent = -1, count = 0;
 
 #ifdef MRL_DEBUG
   mrl_clear(&mrl);
@@ -185,9 +184,6 @@ static const char** complete(int argc, char * const argv[])
   printf("argv[%i]=%p\r\n", argc, argv[argc]);
   mrl_refresh(&mrl);
 #endif
-
-  count = 0;
-  parent = -1;
 
 #if 0
   if (argc == 0)
@@ -218,7 +214,7 @@ static const char** complete(int argc, char * const argv[])
 
         if (strcmp(cmd->name, argv[i]) == 0)
 	{ // command/option full found
-	  parent = cmd->index;
+	  parent = cmd->id;
 	  i += cmd->arg_num;
 	  break;
 	}
