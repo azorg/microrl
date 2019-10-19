@@ -115,10 +115,7 @@ static void fn_fl_page(int argc, char* const argv[], const cmd_t *cmd)
 //-----------------------------------------------------------------------------
 static void fn_fl_erase(int argc, char* const argv[], const cmd_t *cmd)
 {
-  if (argc)
-    printf("%s: %s (argc=%i)\r\n", cmd->name, cmd->help, argc);
-  else
-    printf("FLASH erased (argc=%i)\r\n", argc);
+  printf("FLASH erased (argc=%i)\r\n", argc);
 }
 //-----------------------------------------------------------------------------
 // all commands and options tree
