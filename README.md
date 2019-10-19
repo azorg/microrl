@@ -46,7 +46,7 @@ mrl_conf.h     - customization MicroRL config file
 mrl_defs.h     - internal MicroRL defines
 mrl.c          - source code of MicroRL routines
 test/            - library usage example and tests for GNU/Linux
-  Makefile.kel   - helper Makefile (included from Makefile's)
+  Makefile.skel  - helper Makefile (included from Makefile's)
   test1/  
     mrl_test1.c    - source code of example and test #1
     Makefile       - Makefile for build test #1
