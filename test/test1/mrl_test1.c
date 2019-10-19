@@ -1,6 +1,6 @@
 /*
- * MicroRL library test unut
- * File "mrl_test.c"
+ * MicroRL library test unut #1
+ * File "mrl_test1.c"
  */
 
 //-----------------------------------------------------------------------------
@@ -33,15 +33,15 @@
 #define _NUM_OF_VER_SCMD 2
 
 // available  commands
-char *keyworld[] = { _CMD_HELP, _CMD_CLEAR, _CMD_LIST, _CMD_NAME,
-                     _CMD_VALUE, _CMD_VER, _CMD_LISP, _CMD_PROMPT,
-                     _CMD_PROFIT };
+const char *keyworld[] = { _CMD_HELP, _CMD_CLEAR, _CMD_LIST, _CMD_NAME,
+                           _CMD_VALUE, _CMD_VER, _CMD_LISP, _CMD_PROMPT,
+                           _CMD_PROFIT };
 
 // version subcommands
-char *ver_keyworld[] = { _SCMD_MRL, _SCMD_DEMO };
+const char *ver_keyworld[] = { _SCMD_MRL, _SCMD_DEMO };
 
 // array for comletion
-char *compl_world[_NUM_OF_CMD + 1];
+const char *compl_world[_NUM_OF_CMD + 1];
 
 // 'name' var for store some string
 #define _NAME_LEN 8
@@ -219,7 +219,7 @@ static void execute(int argc, char * const argv[])
 //-----------------------------------------------------------------------------
 #ifdef MRL_USE_COMPLETE
 // completion callback for microrl library
-static char** complete(int argc, char * const argv[])
+static const char** complete(int argc, char * const argv[])
 {
   int i, count = 0;
 
@@ -230,12 +230,13 @@ static char** complete(int argc, char * const argv[])
   printf("argv[%i]=%p\r\n", argc, argv[argc]);
 #endif
 
-  if (argc == 0)
+  /*if (argc == 0)
   { // if there is no token in cmdline, just print all available token
+    printf("OOOPS!\r\n")
     for (; count < _NUM_OF_CMD; count++)
       compl_world[count] = keyworld[count];
   }
-  else if (argc == 1)
+  else*/ if (argc == 1)
   { // if there is first token
     // iterate through our available token and match it
     for (i = 0; i < _NUM_OF_CMD; i++)
@@ -317,5 +318,5 @@ int main(int argc, char **argv)
 }
 //-----------------------------------------------------------------------------
 
-/*** end of "mrl_test.c" file ***/
+/*** end of "mrl_test1.c" file ***/
 

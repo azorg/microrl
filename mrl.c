@@ -403,7 +403,7 @@ INLINE void mrl_back_replace_spaces(char *str, int len)
       str[i] = ' ';
 }
 //-----------------------------------------------------------------------------
-static int mrl_common_len(char * const argv[])
+static int mrl_common_len(const char * const argv[])
 {
   int i, j;
   const char *shortest = argv[0];
@@ -432,7 +432,7 @@ INLINE void mrl_get_complite(mrl_t *self)
 {
   int argc;
   char *argv[MRL_COMMAND_TOKEN_NUM + 2];
-  char **compl_argv;
+  const char **compl_argv;
   
   if (self->get_completion == NULL) return; // callback was not set
   

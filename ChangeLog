@@ -1,3 +1,7 @@
+2019.10.19:
+ * update some pointer to `const`
+ + add "test/test2/mrl_test2.c"
+
 2019.10.18:
  * add MRL_ENDL_CR_LF
  * add mrl_clear(), mrl_prompt() and mrl_refresh()

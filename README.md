@@ -45,10 +45,14 @@ mrl.h          - external MicroRL interface and data types
 mrl_conf.h     - customization MicroRL config file
 mrl_defs.h     - internal MicroRL defines
 mrl.c          - source code of MicroRL routines
-test/            - library usage example and test for GNU/Linux
-  mrl_test.c     - source code of example and test
-  Makefile       - Makefile for build test
-  Makefile.kel   - helper Makefile (included from Makefile)
+test/            - library usage example and tests for GNU/Linux
+  Makefile.kel   - helper Makefile (included from Makefile's)
+  test1/  
+    mrl_test1.c    - source code of example and test #1
+    Makefile       - Makefile for build test #1
+  test2/  
+    mrl_test2.c    - source code of example and test #2
+    Makefile       - Makefile for build test #1
 ```
 
 ## 4. Install
@@ -146,6 +150,8 @@ See example library usage in test folder.
  * [+] add MRL_ENDL_CR_LF config (one CR or one LF - in, CR+LF - out)
 
  * [-] auto detection end of line (CR/LF/CR+LF/LF+CR) 
+
+ * [~] add `mrl_test2`
 
 ## 6. Notes
 
