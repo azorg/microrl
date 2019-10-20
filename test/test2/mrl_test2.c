@@ -42,6 +42,7 @@ static const char *compl_world[COMPL_NUM + 1];
 //-----------------------------------------------------------------------------
 extern cmd_t const cmd_tree[];
 //-----------------------------------------------------------------------------
+// show help based on command/option tree
 #define NAME_SIZE "7" // token length for print help
 static void fn_help(int argc, char* const argv[], const cmd_t *cmd)
 {

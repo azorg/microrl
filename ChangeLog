@@ -1,3 +1,6 @@
+2019.10.20:
+ * fix bug (CTRL+C)
+
 2019.10.19:
  * update some pointer to `const`
  + add "test/test2/mrl_test2.c"

@@ -780,10 +780,9 @@ int mrl_insert_char(mrl_t *self, int ch)
     break;
 
     case MRL_KEY_ETX: // Ctrl+C
-#ifdef MRL_USE_CTLR_C
-      if (self->sigint != NULL)
-        self->sigint();
-#endif
+#ifdef MRL_USE_CTRL_C
+      if (self->sigint != NULL) self->sigint();
+#endif // MRL_USE_CTRL_C
       return MRL_KEY_ETX;
 
     case MRL_KEY_EOT: // Ctrl+D

@@ -16,7 +16,7 @@
 // command line not to be parsed and 'execute' callback will not calls.
 // Token is word separate by white space, for example 3 token line:
 // "=> set mode test"
-#define MRL_COMMAND_TOKEN_NUM 8
+#define MRL_COMMAND_TOKEN_NUM 256
 //-----------------------------------------------------------------------------
 // Define you prompt string here. You can use colors escape code,
 // for highlight you prompt (if you terminal supports color).
@@ -44,7 +44,7 @@
 //-----------------------------------------------------------------------------
 // Define it, if much alternatives for complete.
 // Number of completion help columns.
-#define MRL_COMPLETE_COLS 5
+#define MRL_COMPLETE_COLS 10
 //-----------------------------------------------------------------------------
 // Define it, if you wanna use history. It s work's like bash history, and
 // set stored value to cmdline, if UP and DOWN key pressed. Using history add
@@ -56,7 +56,7 @@
 // so we can not say, how many line we can store, it depends from cmdline len,
 // but memory using more effective. We not prefer dynamic memory allocation
 // for small and embedded devices. Overhead is only 1 char on each saved line
-#define MRL_RING_HISTORY_LEN 200 // FIXME
+#define MRL_RING_HISTORY_LEN 1024
 //-----------------------------------------------------------------------------
 // Enable Handling terminal ESC sequence. If disabling, then cursor arrow,
 // HOME, END, DELETE will not work (use Ctrl+A(B,F,P,N,A,E,H,K,U,C,D)) but
