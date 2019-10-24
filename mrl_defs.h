@@ -51,9 +51,10 @@
 #define MRL_ESC_STOP    0
 #define MRL_ESC_START   1
 #define MRL_ESC_BRACKET 2
-#define MRL_ESC_HOME    3
-#define MRL_ESC_END     4
-#define MRL_ESC_DELETE  5
+#define MRL_ESC_O       3
+#define MRL_ESC_HOME    4
+#define MRL_ESC_END     5
+#define MRL_ESC_DELETE  6
 //-----------------------------------------------------------------------------
 #endif // MRL_DEFS_H
 

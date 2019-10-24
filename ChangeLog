@@ -1,5 +1,8 @@
+2019.10.24:
+ + add HOME/END keycode from `minicom`
+
 2019.10.23:
- + add some user keys (Ctrl+S, Ctrl+X, Ctrl+Y, Ctrl+Z, Ctrl+V)
+ + add some user keys (Ctrl+S, Ctrl+V, Ctrl+X, Ctrl+Y, Ctrl+Z, Ctrl+V)
 
 2019.10.20:
  * fix bug (Ctrl+C)

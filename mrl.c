@@ -633,7 +633,7 @@ static void mrl_escape_process(mrl_t *self, char ch)
       mrl_cursor_end(self);
       self->escape_seq = MRL_ESC_STOP;
     } 
-    else if (ch == '7')
+    else if (ch == '7' || ch == '1')
       self->escape_seq = MRL_ESC_HOME;
     else if (ch == '8')
       self->escape_seq = MRL_ESC_END;
@@ -659,6 +659,13 @@ static void mrl_escape_process(mrl_t *self, char ch)
       mrl_delete(self);
       self->escape_seq = MRL_ESC_STOP;
     }
+  }
+  else if (ch == 'O')
+    self->escape_seq = MRL_ESC_O;
+  else if (self->escape_seq == MRL_ESC_O && ch == 'F')
+  { // END
+    mrl_cursor_end(self);
+    self->escape_seq = MRL_ESC_STOP;
   }
   else
     self->escape_seq = MRL_ESC_STOP; // unknown escape sequence, stop
