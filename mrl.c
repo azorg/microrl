@@ -786,7 +786,12 @@ int mrl_insert_char(mrl_t *self, int ch)
       return MRL_KEY_ETX;
 
     case MRL_KEY_EOT: // Ctrl+D
-      return MRL_KEY_EOT;
+    case MRL_KEY_DC3: // Ctrl+S
+    case MRL_KEY_CAN: // Ctrl+X
+    case MRL_KEY_EM:  // Ctrl+Y
+    case MRL_KEY_SUB: // Ctrl+Z
+    case MRL_KEY_SYN: // Ctrl+V
+      return ch;
 
     default:
       if (!MRL_IS_CONTROL_CHAR(ch))
