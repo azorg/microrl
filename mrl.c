@@ -687,96 +687,96 @@ int mrl_insert_char(mrl_t *self, int ch)
 #if defined(MRL_ENDL_CR)
     case MRL_KEY_CR:
       mrl_new_line_handler(self);
-    break;
+      break;
 
     case MRL_KEY_LF:
-    break;
+      break;
 #elif defined(MRL_ENDL_CRLF)
     case MRL_KEY_CR:
       self->tmpch = MRL_KEY_CR;
-    break;
+      break;
 
     case MRL_KEY_LF:
-    if (self->tmpch == MRL_KEY_CR)
-      mrl_new_line_handler(self);
-    break;
+      if (self->tmpch == MRL_KEY_CR)
+        mrl_new_line_handler(self);
+      break;
 #elif defined(MRL_ENDL_LFCR)
     case MRL_KEY_LF:
       self->tmpch = MRL_KEY_LF;
-    break;
+      break;
 
     case MRL_KEY_CR:
-    if (self->tmpch == MRL_KEY_LF)
-      mrl_new_line_handler(self);
-    break;
+      if (self->tmpch == MRL_KEY_LF)
+        mrl_new_line_handler(self);
+      break;
 #elif defined(MRL_ENDL_LF)
     case MRL_KEY_CR:
-    break;
+      break;
 
     case MRL_KEY_LF:
       mrl_new_line_handler(self);
-    break;
+      break;
 #else // defined(MRL_ENDL_CR_LF)
     case MRL_KEY_CR:
     case MRL_KEY_LF:
       mrl_new_line_handler(self);
-    break;
+      break;
 #endif
 
 #ifdef MRL_USE_COMPLETE
     case MRL_KEY_HT: // TAB
       mrl_get_complite(self);
-    break;
+      break;
 #endif
 
     case MRL_KEY_ESC: // ESC
 #ifdef MRL_USE_ESC_SEQ
       self->escape_seq = MRL_ESC_START;
 #endif
-    break;
+      break;
 
     case MRL_KEY_NAK: // Ctrl+U
       mrl_del_before_cursor(self);
-    break;
+      break;
 
     case MRL_KEY_VT:  // Ctrl+K
       self->print("\033[K");
       self->cmdlen = self->cursor;
       self->cmdline[self->cmdlen] = '\0';
-    break;
+      break;
 
     case MRL_KEY_ENQ: // Ctrl+E
       mrl_cursor_end(self);
-    break;
+      break;
 
     case MRL_KEY_SOH: // Ctrl+A
       mrl_cursor_home(self);
-    break;
+      break;
 
     case MRL_KEY_ACK: // Ctrl+F
       mrl_cursor_forward(self);
-    break;
+      break;
 
     case MRL_KEY_STX: // Ctrl+B
       mrl_cursor_back(self);
-    break;
+      break;
 
     case MRL_KEY_DLE: // Ctrl+P
 #ifdef MRL_USE_HISTORY
-    mrl_hist(self, MRL_HIST_BACKWARD);
+      mrl_hist(self, MRL_HIST_BACKWARD);
 #endif
-    break;
+      break;
 
     case MRL_KEY_SO: // Ctrl+N
 #ifdef MRL_USE_HISTORY
-    mrl_hist(self, MRL_HIST_FORWARD);
+      mrl_hist(self, MRL_HIST_FORWARD);
 #endif
-    break;
+      break;
 
     case MRL_KEY_DEL: // BACKSPACE
     case MRL_KEY_BS:  // CTLR+H
       mrl_backspace(self);
-    break;
+      break;
 
     case MRL_KEY_DC2: // Ctrl+R
       mrl_terminal_newline(self);
@@ -784,7 +784,7 @@ int mrl_insert_char(mrl_t *self, int ch)
       //mrl_terminal_cursor(self, 0);
       mrl_terminal_print(self, self->cmdline);
       mrl_terminal_cursor(self, self->cursor);
-    break;
+      break;
 
     case MRL_KEY_ETX: // Ctrl+C
 #ifdef MRL_USE_CTRL_C
@@ -792,18 +792,27 @@ int mrl_insert_char(mrl_t *self, int ch)
 #endif // MRL_USE_CTRL_C
       return MRL_KEY_ETX;
 
+    case MRL_KEY_FF: // Ctrl+L
+      self->print("\033[2J"  // ESC seq for clear entire screen
+                  "\033[H"); // ESC seq for move cursor at left-top corner
+      mrl_terminal_prompt(self);
+      mrl_terminal_print(self, self->cmdline);
+      mrl_terminal_cursor(self, self->cursor);
+      break;
+
     case MRL_KEY_EOT: // Ctrl+D
     case MRL_KEY_DC3: // Ctrl+S
     case MRL_KEY_CAN: // Ctrl+X
     case MRL_KEY_EM:  // Ctrl+Y
     case MRL_KEY_SUB: // Ctrl+Z
     case MRL_KEY_SYN: // Ctrl+V
+    case MRL_KEY_DC1: // Ctrl+Q
       return ch;
 
     default:
       if (!MRL_IS_CONTROL_CHAR(ch))
         mrl_insert_text(self, (const char*) &ch, 1);
-    break;
+      break;
   } // switch (ch)
   
   return 0;
