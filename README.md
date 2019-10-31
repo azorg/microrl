@@ -29,7 +29,8 @@ history and completion feature.
 	 - Ctrl+R (retype prompt and partial command)
 	 - Ctrl+C (call 'sigint' callback, only for embedded system)
 	 - Ctrl+L (clear terminal window)
-	 - Ctrl+D, Ctrl+S, Ctr+V, Ctrl+X, Ctrl+Y, Ctrl+Z, Ctrl+Q (return non zero key code)
+	 - Ctrl+D, Ctrl+S, Ctr+V, Ctrl+X, Ctrl+Y, Ctrl+Z, Ctrl+Q, Ctrl+W
+           (return non zero key code)
 
 	** history
 	 - Static ring buffer history for memory saving. Number of commands
@@ -153,6 +154,10 @@ See example library usage in test folder.
  * [-] auto detection end of line (CR/LF/CR+LF/LF+CR) 
 
  * [~] add `mrl_test2`
+ 
+ * [+] add some escape key codes
+
+ * [+] return some key codes (Ctr+Q/S/W/Z/X/Y/V)
 
 ## 6. Notes
 
