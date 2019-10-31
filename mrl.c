@@ -806,6 +806,7 @@ int mrl_insert_char(mrl_t *self, int ch)
     case MRL_KEY_EM:  // Ctrl+Y
     case MRL_KEY_SUB: // Ctrl+Z
     case MRL_KEY_SYN: // Ctrl+V
+    case MRL_KEY_ETB: // Ctrl+W
     case MRL_KEY_DC1: // Ctrl+Q
       return ch;
 
