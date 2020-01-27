@@ -207,7 +207,8 @@ static const char** complete(int argc, char * const argv[])
     const cmd_t *cmd = cmd_tree;
     while (cmd->name != NULL)
     {
-      if (cmd->parent == parent && strstr(cmd->name, argv[i]) == cmd->name)
+      if (cmd->parent == parent && strstr(cmd->name, argv[i]) == cmd->name &&
+	  (parent != -1 || i == 0))
       { // substring found => add it to completion set
 
         if (i == argc - 1 && count < COMPL_NUM)

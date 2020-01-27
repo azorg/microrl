@@ -1,3 +1,6 @@
+2019.12.28:
+ + fix completion bug in "mrl_test2.c"
+
 2019.10.30:
  + add Ctrl+W for user
 

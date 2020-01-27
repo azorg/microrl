@@ -9,7 +9,7 @@
 // Command line length, define cmdline buffer size.
 // Set max number of chars + 1 because last byte of buffer need to
 // contain '\0' - NULL terminator, and not use for storing inputed char.
-#define MRL_COMMAND_LINE_LEN 81 // FIXME
+#define MRL_COMMAND_LINE_LEN 256 // FIXME
 //-----------------------------------------------------------------------------
 // Command token number, define max token it command line, if number of token
 // typed in command line exceed this value, then prints message about it and
