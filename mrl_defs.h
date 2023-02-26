@@ -3,6 +3,7 @@
  * File "mrl_defs.h"
  */
 
+#pragma once
 #ifndef MRL_DEFS_H
 #define MRL_DEFS_H
 //-----------------------------------------------------------------------------
@@ -41,7 +42,7 @@
 #define MRL_KEY_US   31 // ^_ Unit separator
 #define MRL_KEY_DEL 127 // BACKSPACE (not a real control character)
 //-----------------------------------------------------------------------------
-#define MRL_IS_CONTROL_CHAR(x) ((x) <= 31)
+#define MRL_IS_CONTROL_CHAR(chr) ((chr) <= 31)
 //-----------------------------------------------------------------------------
 // direction of history navigation
 #define MRL_HIST_BACKWARD 0

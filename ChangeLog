@@ -1,3 +1,24 @@
+2022.12.26:
+ * fix BUG with BACKSPACE (Ctrl+h): mrl_backspace()
+ * update mrl_str2int();
+
+2022.10.23:
+ * test again, save original source to gitflic.ru
+
+2020.09.13:
+ * fix Ctrl+K if ESCAPE_OFF
+ + add Ctrl+T hot key
+
+2020.07.06:
+ + add define MRL_PRINT_ESC_OFF
+
+2020.05.28:
+ + add "test/test3/mrl_test3.c"
+
+2020.05.24:
+ * try to minimize code for tiny system
+ + add MRL_ECHO_OFF
+
 2019.12.28:
  + fix completion bug in "mrl_test2.c"
 

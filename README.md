@@ -29,8 +29,8 @@ history and completion feature.
 	 - Ctrl+R (retype prompt and partial command)
 	 - Ctrl+C (call 'sigint' callback, only for embedded system)
 	 - Ctrl+L (clear terminal window)
-	 - Ctrl+D, Ctrl+S, Ctr+V, Ctrl+X, Ctrl+Y, Ctrl+Z, Ctrl+Q, Ctrl+W
-           (return non zero key code)
+	 - Ctrl+G (clear all line)
+	 - Ctrl+D, Ctrl+S, Ctr+V, Ctrl+X, Ctrl+Y, Ctrl+Z, Ctrl+Q, Ctrl+W, Ctrl+T (return non zero key code)
 
 	** history
 	 - Static ring buffer history for memory saving. Number of commands
@@ -54,6 +54,9 @@ test/            - library usage example and tests for GNU/Linux
     Makefile       - Makefile for build test #1
   test2/  
     mrl_test2.c    - source code of example and test #2
+    Makefile       - Makefile for build test #1
+  test3/
+    mrl_test3.c    - source code of example and test #3
     Makefile       - Makefile for build test #1
 ```
 
@@ -153,7 +156,7 @@ See example library usage in test folder.
 
  * [-] auto detection end of line (CR/LF/CR+LF/LF+CR) 
 
- * [~] add `mrl_test2`
+ * [+] add `mrl_test2`
  
  * [+] add some escape key codes
 
@@ -162,6 +165,8 @@ See example library usage in test folder.
 ## 6. Notes
 
  * for using ANSI colors start `minicom` with `-c on` option
+
+ * I use MicroRL in my STM32 projects
 
 ## 7. License
 

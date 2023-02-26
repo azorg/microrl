@@ -1,6 +1,6 @@
 #!/bin/sh
 
-for i in 1 2
+for i in 1 2 3
 do
   D="test$i"
   if [ -d "$D" ]

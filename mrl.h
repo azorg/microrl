@@ -3,6 +3,7 @@
  * File "mrl.h"
  */
 
+#pragma once
 #ifndef MRL_H
 #define MRL_H
 //-----------------------------------------------------------------------------
@@ -122,7 +123,7 @@ INLINE void mrl_set_sigint_cb(mrl_t *self, void (*sigintf)(void))
 #endif // MRL_USE_CTRL_C
 //-----------------------------------------------------------------------------
 // insert char to cmdline (for example call in usart RX interrupt)
-// (return non zero key code if Ctrl+C or Ctrl+D pressed, else 0)
+// (return non zero key code if Ctrl+KEY pressed, else 0)
 int mrl_insert_char(mrl_t *self, int ch);
 //----------------------------------------------------------------------------
 #if defined(MRL_UINT2STR) || defined(MRL_INT2STR) || !defined(MRL_USE_LIBC_STDIO)

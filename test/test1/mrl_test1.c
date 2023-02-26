@@ -59,7 +59,8 @@ mrl_t mrl;
 // get char user pressed, no waiting Enter input
 static char get_char()
 {
-  char c;
+  char ch;
+#ifndef MRL_ECHO_OFF
   struct termios oldt, newt;
 
   // canonical mode OFF
@@ -67,15 +68,17 @@ static char get_char()
   newt = oldt;
   newt.c_lflag &= ~(ICANON | ECHO);
   tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+#endif // !MRL_ECHO_OFF
   
-  c = getchar();
+  ch = getchar();
   
+#ifndef MRL_ECHO_OFF
   // canonical mode ON
   tcsetattr(STDIN_FILENO, TCSANOW, &oldt );
+#endif // !MRL_ECHO_OFF
 
-  return c;
+  return ch;
 }
-//-----------------------------------------------------------------------------
 // print callback for MicroRL library
 static void print(const char *str)
 {

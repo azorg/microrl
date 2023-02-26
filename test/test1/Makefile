@@ -17,7 +17,7 @@ HDRS := ../../mrl.h ../../mrl_conf.h ../../mrl_defs.h
 #----------------------------------------------------------------------------
 #INC_DIRS  := ..
 #INC_FLAGS := 
-#DEFS      := -DMRL_DEBUG -DMRL_DEBUG_HISTORY
+DEFS      := -DMRL_USE_HISTORY -DMRL_USE_COMPLETE #-DMRL_PRINT_ESC_OFF #-DMRL_DEBUG
 OPTIM     := -Os -fomit-frame-pointer
 WARN      := -Wall
 

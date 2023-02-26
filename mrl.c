@@ -20,7 +20,7 @@ const int    mrl_prompt_default_len = MRL_PROMPT_DEFAULT_LEN;
 #include <stdio.h>
 //-----------------------------------------------------------------------------
 // print buffer content on screen
-static void mrl_hist_print(mrl_hist_t *self)
+static void mrl_hist_print(const mrl_hist_t *self)
 {
   int i;
   for (i = 0; i < MRL_RING_HISTORY_LEN; i++)
@@ -50,7 +50,7 @@ static void mrl_hist_print(mrl_hist_t *self)
   printf(MRL_ENDL);
 }
 //-----------------------------------------------------------------------------
-static void mrl_cmd_print(mrl_t *self)
+static void mrl_cmd_print(const mrl_t *self)
 {
   int i;
   printf(MRL_ENDL "cmd=");
@@ -154,7 +154,7 @@ INLINE bool mrl_hist_forward(mrl_hist_t *self)
 //-----------------------------------------------------------------------------
 // get string from history by current index (return string length)
 // [used inside mrl_hist_search() only]
-INLINE int mrl_hist_get(mrl_hist_t *self, char *buf)
+INLINE int mrl_hist_get(const mrl_hist_t *self, char *buf)
 {
   int len = 0, i = self->cur;
     
@@ -203,35 +203,28 @@ static int mrl_hist_search(mrl_hist_t *self, int dir, char *str)
 //-----------------------------------------------------------------------------
 #endif // MRL_USE_HISTORY
 //-----------------------------------------------------------------------------
-INLINE void mrl_terminal_prompt(mrl_t *self)
+INLINE void mrl_terminal_prompt(const mrl_t *self)
 {
   self->print(self->prompt);
 }
 //-----------------------------------------------------------------------------
-INLINE void mrl_terminal_print(mrl_t *self, const char *str)
+INLINE void mrl_terminal_print(const mrl_t *self, const char *str)
 {
+#ifndef MRL_PRINT_ESC_OFF
   self->print("\033[K"); // delete all from cursor to end
+#endif // MRL_PRINT_ESC_OFF
   self->print(str);
 }
 //-----------------------------------------------------------------------------
-INLINE void mrl_terminal_newline(mrl_t *self)
+INLINE void mrl_terminal_newline(const mrl_t *self)
 {
   self->print(MRL_ENDL);
 }
 //-----------------------------------------------------------------------------
-INLINE void mrl_terminal_cursor_back(mrl_t *self)
-{
-  self->print("\033[D");
-}
-//-----------------------------------------------------------------------------
-INLINE void mrl_terminal_cursor_forward(mrl_t *self)
-{
-  self->print("\033[C");
-}
-//-----------------------------------------------------------------------------
 // set cursor position after prompt
-static void mrl_terminal_cursor(mrl_t *self, int cursor)
+static void mrl_terminal_cursor(const mrl_t *self, int cursor)
 {
+#ifndef MRL_PRINT_ESC_OFF
   char str[16];
   cursor += self->prompt_len;
 #ifdef MRL_USE_LIBC_STDIO
@@ -249,28 +242,74 @@ static void mrl_terminal_cursor(mrl_t *self, int cursor)
     *ptr++ = 'C';
   }
   *ptr  = '\0';
-#endif
+#endif // MRL_USE_LIBC_STDIO
   self->print(str);
+
+#else // MRL_PRINT_ESC_OFF
+  int i;
+  char tmp[2];
+  tmp[1] = '\0';
+  self->print("\r");
+  mrl_terminal_prompt(self);
+  for (i = 0; i < self->cmdlen && i < cursor; i++)
+  {
+    tmp[0] = self->cmdline[i];
+    self->print(tmp);
+  }
+  for (; i < cursor; i++)
+    self->print(" ");
+#endif // MRL_PRINT_ESC_OFF
+}
+//-----------------------------------------------------------------------------
+INLINE void mrl_terminal_cursor_back(const mrl_t *self)
+{
+#ifndef MRL_PRINT_ESC_OFF
+  self->print("\033[D");
+#else
+  mrl_terminal_cursor(self, self->cursor - 1);
+#endif // MRL_PRINT_ESC_OFF
+}
+//-----------------------------------------------------------------------------
+INLINE void mrl_terminal_cursor_forward(const mrl_t *self)
+{
+#ifndef MRL_PRINT_ESC_OFF
+  self->print("\033[C");
+#else
+  mrl_terminal_cursor(self, self->cursor + 1);
+#endif // MRL_PRINT_ESC_OFF
 }
 //-----------------------------------------------------------------------------
 // cursor LEFT or Ctrl+B pressed
 static void mrl_cursor_back(mrl_t *self)
 {
+#ifndef MRL_ECHO_OFF
   if (self->cursor > 0)
   {
-    self->cursor--;
     mrl_terminal_cursor_back(self);
+    self->cursor--;
   }
+#else
+  if (self->cursor > 0)
+    self->cursor--;
+  mrl_terminal_cursor(self, self->cursor);
+#endif // MRL_ECHO_OFF
 }
 //-----------------------------------------------------------------------------
 // cursor RIGHT or Ctrl+F pressed
 static void mrl_cursor_forward(mrl_t *self)
 {
+#ifndef MRL_ECHO_OFF
   if (self->cursor < self->cmdlen)
   {
-    self->cursor++;
     mrl_terminal_cursor_forward(self);
+    self->cursor++;
   }
+#else
+  if (self->cursor < self->cmdlen)
+    self->cursor++;
+
+  mrl_terminal_cursor(self, self->cursor);
+#endif // MRL_ECHO_OFF
 }
 //-----------------------------------------------------------------------------
 // HOME or Ctrl+A pressed
@@ -290,15 +329,31 @@ INLINE void mrl_backspace(mrl_t *self)
 {
   if (self->cursor > 0)
   {
+#ifndef MRL_ECHO_OFF
+    mrl_terminal_cursor_back(self);
+#endif // !MRL_ECHO_OFF
     memmove(self->cmdline + self->cursor - 1,
             self->cmdline + self->cursor,
             self->cmdlen  - self->cursor + 1);
     self->cursor--;
     self->cmdlen--;
-    mrl_terminal_cursor_back(self);
     mrl_terminal_print(self, self->cmdline + self->cursor);
+#ifdef MRL_PRINT_ESC_OFF
+    self->print(" ");
+#endif // MRL_PRINT_ESC_OFF
     mrl_terminal_cursor(self, self->cursor);
   }
+#ifdef MRL_ECHO_OFF
+  else
+  {
+    mrl_terminal_cursor_forward(self);
+    mrl_terminal_print(self, self->cmdline + self->cursor);
+#ifdef MRL_PRINT_ESC_OFF
+    self->print(" ");
+#endif // MRL_PRINT_ESC_OFF
+    mrl_terminal_cursor(self, self->cursor);
+  }
+#endif // MRL_ECHO_OFF
 }
 //-----------------------------------------------------------------------------
 // DELETE pressed
@@ -311,6 +366,9 @@ INLINE void mrl_delete(mrl_t *self)
             self->cmdlen  - self->cursor + 1);
     self->cmdlen--;
     mrl_terminal_print(self, self->cmdline + self->cursor);
+#ifdef MRL_PRINT_ESC_OFF
+    self->print(" ");
+#endif // MRL_PRINT_ESC_OFF
     mrl_terminal_cursor(self, self->cursor);
   }
 }
@@ -318,6 +376,9 @@ INLINE void mrl_delete(mrl_t *self)
 // Alt+BACKSPACE or Ctrl+U presed
 static void mrl_del_before_cursor(mrl_t *self)
 {
+#ifdef MRL_PRINT_ESC_OFF
+  int i = self->cursor;
+#endif // MRL_PRINT_ESC_OFF
   memmove(self->cmdline,
           self->cmdline + self->cursor,
           self->cmdlen - self->cursor + 1);
@@ -325,6 +386,13 @@ static void mrl_del_before_cursor(mrl_t *self)
   self->cursor = 0;
   mrl_terminal_cursor(self, 0);
   mrl_terminal_print(self, self->cmdline);
+#ifdef MRL_PRINT_ESC_OFF
+  while (i > 0)
+  {
+    self->print(" ");
+    i--;
+  }
+#endif // MRL_PRINT_ESC_OFF
   mrl_terminal_cursor(self, self->cursor = 0);
 }
 //-----------------------------------------------------------------------------
@@ -336,7 +404,18 @@ static void mrl_hist(mrl_t *self, int dir)
   len = mrl_hist_search(&self->hist, dir, self->cmdline);
   if (len >= 0)
   {
+#ifdef MRL_PRINT_ESC_OFF
+    int i = self->cmdlen;
     self->cursor = self->cmdlen = len;
+    mrl_terminal_cursor(self, 0);
+    while (i > 0)
+    {
+      self->print(" ");
+      i--;
+    }
+#else
+    self->cursor = self->cmdlen = len;
+#endif // MRL_PRINT_ESC_OFF
     mrl_terminal_cursor(self, 0);
     mrl_terminal_print(self, self->cmdline);
   }
@@ -370,6 +449,7 @@ static int mrl_split(char *str, int len, char **argv)
   return argc;
 }
 //-----------------------------------------------------------------------------
+#ifdef MRL_USE_COMPLETE
 // insert len char of text at cursor position
 static void mrl_insert_text(mrl_t *self, const char *text, int len)
 {
@@ -388,9 +468,54 @@ static void mrl_insert_text(mrl_t *self, const char *text, int len)
 
     mrl_terminal_cursor(self, self->cursor);
     mrl_terminal_print(self, p1);
+    
     self->cursor += len;
+    
     mrl_terminal_cursor(self, self->cursor);
   }
+#ifdef MRL_ECHO_OFF
+  else
+  {
+    mrl_terminal_print(self, self->cmdline + self->cursor);
+    mrl_terminal_cursor(self, self->cursor);
+  }
+#endif // MRL_ECHO_OFF
+}
+#endif // MRL_USE_COMPLETE
+//-----------------------------------------------------------------------------
+// insert one char to cursor position
+static void mrl_insert_chr(mrl_t *self, char chr)
+{
+  if (self->cmdlen < MRL_COMMAND_LINE_LEN - 1) 
+  {
+    char *ptr = self->cmdline + self->cursor;
+    memmove(ptr + 1, ptr, self->cmdlen - self->cursor + 1);
+    *ptr = chr;
+
+#ifdef MRL_ECHO_OFF
+    if (++self->cursor < ++self->cmdlen)
+    {
+      mrl_terminal_cursor(self, self->cursor);
+      mrl_terminal_print(self, ptr + 1);
+      mrl_terminal_cursor(self, self->cursor);
+    }
+#else
+    self->cmdlen++;
+    mrl_terminal_cursor(self, self->cursor);
+    mrl_terminal_print(self, ptr);
+    self->cursor++;
+    mrl_terminal_cursor(self, self->cursor);
+#endif // MRL_ECHO_OFF
+  }
+#ifdef MRL_ECHO_OFF
+  else
+  {
+    mrl_terminal_cursor_back(self);
+    mrl_terminal_print(self, self->cmdline + self->cursor);
+    mrl_terminal_print(self, " ");
+    mrl_terminal_cursor(self, self->cursor);
+  }
+#endif // MRL_ECHO_OFF
 }
 //-----------------------------------------------------------------------------
 #ifdef MRL_USE_COMPLETE
@@ -450,7 +575,7 @@ INLINE void mrl_get_complite(mrl_t *self)
 
   if (compl_argv[0] != NULL)
   {
-    int len, i = 0;
+    int len = 0;
 
     if (compl_argv[1] == NULL)
     { // only one variant
@@ -458,6 +583,7 @@ INLINE void mrl_get_complite(mrl_t *self)
     }
     else
     { // some variants
+      int i = 0;
 #ifdef MRL_COMPLETE_COLS
       int num = 0;
 #endif
@@ -467,12 +593,12 @@ INLINE void mrl_get_complite(mrl_t *self)
       {
 #ifdef MRL_COMPLETE_COLS
         if (++num > MRL_COMPLETE_COLS)
-	{
-	  num = 1;
+        {
+          num = 1;
           mrl_terminal_newline(self);
-	}
+        }
 #endif
-	self->print(compl_argv[i]);
+        self->print(compl_argv[i]);
         self->print(" ");
         i++;
       }
@@ -486,7 +612,7 @@ INLINE void mrl_get_complite(mrl_t *self)
                       len - strlen(argv[argc - 1]));
 
       if (compl_argv[1] == NULL &&            // only one variant and
-	  self->cmdline[self->cursor] != ' ') // no space at cursor
+          self->cmdline[self->cursor] != ' ') // no space at cursor
         mrl_insert_text(self, " ", 1);        // => append space
     }
 
@@ -494,6 +620,14 @@ INLINE void mrl_get_complite(mrl_t *self)
     mrl_terminal_print(self, self->cmdline);
     mrl_terminal_cursor(self, self->cursor);
   } 
+#ifdef MRL_ECHO_OFF
+  else
+  {
+    mrl_terminal_cursor(self, self->cursor);
+    mrl_terminal_print(self, self->cmdline + self->cursor);
+    mrl_terminal_cursor(self, self->cursor);
+  }
+#endif // MRL_ECHO_OFF
 }
 #endif // MRL_USE_COMPLETE
 //-----------------------------------------------------------------------------
@@ -558,15 +692,23 @@ void mrl_init(mrl_t *self, void (*print)(const char*))
   self->sigint = NULL;
 #endif
 
-#ifdef MRL_ENABLE_INIT_PROMPT
+#ifdef MRL_ENABLE_INIT_ROMPT
+#ifndef MRL_PRINT_ESC_OFF
   self->print("\r\033[K"); // erase all string and go to begin
+#else
+  self->print("\r"); // start from begin of line
+#endif // MRL_PRINT_ESC_OFF
   mrl_terminal_prompt(self);
 #endif
 }
 //-----------------------------------------------------------------------------
 void mrl_clear(mrl_t *self)
 {
+#ifndef MRL_PRINT_ESC_OFF
   self->print("\r\033[K");
+#else
+  self->print("\r"); // FIXME
+#endif // MRL_PRINT_ESC_OFF
 }
 //-----------------------------------------------------------------------------
 void mrl_prompt(mrl_t *self)
@@ -602,15 +744,18 @@ static void mrl_escape_process(mrl_t *self, char ch)
     if (ch == 'A')
     { // cursor UP
 #ifdef MRL_USE_HISTORY
+#  ifdef MRL_ECHO_OFF
+      self->print("\n");
+#  endif // MRL_ECHO_OFF
       mrl_hist(self, MRL_HIST_BACKWARD);
-#endif
+#endif // MRL_USE_HISTORY 
       self->escape_seq = MRL_ESC_STOP;
     }
     else if (ch == 'B')
     { // cursor DOWN
 #ifdef MRL_USE_HISTORY
       mrl_hist(self, MRL_HIST_FORWARD);
-#endif
+#endif // MRL_USE_HISTORY 
       self->escape_seq = MRL_ESC_STOP;
     }
     else if (ch == 'C')
@@ -630,6 +775,10 @@ static void mrl_escape_process(mrl_t *self, char ch)
     } 
     else if (ch == 'F')
     { // END
+#ifdef MRL_ECHO_OFF
+      mrl_terminal_cursor_back(self);
+      mrl_terminal_print(self, self->cmdline + self->cursor);
+#endif // MRL_ECHO_OFF
       mrl_cursor_end(self);
       self->escape_seq = MRL_ESC_STOP;
     } 
@@ -651,6 +800,10 @@ static void mrl_escape_process(mrl_t *self, char ch)
     }
     else if (self->escape_seq == MRL_ESC_END)
     { // END
+#ifdef MRL_ECHO_OFF
+      mrl_terminal_cursor_back(self);
+      mrl_terminal_print(self, self->cmdline + self->cursor);
+#endif // MRL_ECHO_OFF
       mrl_cursor_end(self);
       self->escape_seq = MRL_ESC_STOP;
     }
@@ -664,6 +817,10 @@ static void mrl_escape_process(mrl_t *self, char ch)
     self->escape_seq = MRL_ESC_O;
   else if (self->escape_seq == MRL_ESC_O && ch == 'F')
   { // END
+#ifdef MRL_ECHO_OFF
+    mrl_terminal_cursor_back(self);
+    mrl_terminal_print(self, self->cmdline + self->cursor);
+#endif // MRL_ECHO_OFF
     mrl_cursor_end(self);
     self->escape_seq = MRL_ESC_STOP;
   }
@@ -740,9 +897,34 @@ int mrl_insert_char(mrl_t *self, int ch)
       break;
 
     case MRL_KEY_VT:  // Ctrl+K
+#ifdef MRL_ECHO_OFF
+      self->print("\n");
+#endif // MRL_ECHO_OFF
+#ifndef MRL_PRINT_ESC_OFF
       self->print("\033[K");
       self->cmdlen = self->cursor;
       self->cmdline[self->cmdlen] = '\0';
+#else
+      mrl_terminal_newline(self);
+      mrl_terminal_prompt(self);
+      self->cmdlen = self->cursor;
+      self->cmdline[self->cmdlen] = '\0';
+      mrl_terminal_print(self, self->cmdline);
+      mrl_terminal_cursor(self, self->cursor);
+      break;
+#endif // MRL_PRINT_ESC_OFF
+      break;
+
+    case MRL_KEY_BEL: // Ctrl+G
+#ifndef MRL_PRINT_ESC_OFF
+      self->print("\r");
+      self->print("\033[K");
+#else
+      mrl_terminal_newline(self);
+#endif // MRL_PRINT_ESC_OFF
+      mrl_terminal_prompt(self);
+      self->cmdlen = self->cursor = 0;
+      self->cmdline[0] = '\0';
       break;
 
     case MRL_KEY_ENQ: // Ctrl+E
@@ -793,26 +975,32 @@ int mrl_insert_char(mrl_t *self, int ch)
       return MRL_KEY_ETX;
 
     case MRL_KEY_FF: // Ctrl+L
+#ifndef MRL_PRINT_ESC_OFF
       self->print("\033[2J"  // ESC seq for clear entire screen
                   "\033[H"); // ESC seq for move cursor at left-top corner
+#else
+      self->print(MRL_ENDL); // go to new line only
+#endif // MRL_PRINT_ESC_OFF
       mrl_terminal_prompt(self);
       mrl_terminal_print(self, self->cmdline);
       mrl_terminal_cursor(self, self->cursor);
       break;
-
+    
     case MRL_KEY_EOT: // Ctrl+D
     case MRL_KEY_DC3: // Ctrl+S
+    case MRL_KEY_DC4: // Ctrl+T
     case MRL_KEY_CAN: // Ctrl+X
     case MRL_KEY_EM:  // Ctrl+Y
     case MRL_KEY_SUB: // Ctrl+Z
     case MRL_KEY_SYN: // Ctrl+V
     case MRL_KEY_ETB: // Ctrl+W
     case MRL_KEY_DC1: // Ctrl+Q
+    case MRL_KEY_SI:  // Ctrl+O
       return ch;
 
     default:
       if (!MRL_IS_CONTROL_CHAR(ch))
-        mrl_insert_text(self, (const char*) &ch, 1);
+        mrl_insert_chr(self, ch);
       break;
   } // switch (ch)
   
@@ -908,6 +1096,7 @@ int mrl_str2int(const char *str, int def_val, unsigned char base)
   while (1)
   {
     c = *p++;
+    if (c == '\'' || c == '"' || c == '`' || c == '_') continue;
     if (c < '0') break;
     if (base > 10)
     {

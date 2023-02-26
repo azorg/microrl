@@ -1,5 +1,5 @@
 #============================================================================
-OUT_NAME     := mrl_test2
+OUT_NAME     := mrl_test3
 #EXEC_EXT    := .exe
 #OUT_DIR     := .
 #CLEAN_DIR   := $(OUT_DIR)/tmp
@@ -7,7 +7,7 @@ OUT_NAME     := mrl_test2
 #----------------------------------------------------------------------------
 #
 # 1-st way to select source files
-SRCS := mrl_test2.c ../../mrl.c
+SRCS := mrl_test3.c ../../mrl.c
 HDRS := ../../mrl.h ../../mrl_conf.h ../../mrl_defs.h
 
 # 2-nd way to select source files
@@ -17,7 +17,7 @@ HDRS := ../../mrl.h ../../mrl_conf.h ../../mrl_defs.h
 #----------------------------------------------------------------------------
 #INC_DIRS  := ..
 #INC_FLAGS := 
-DEFS      := -DMRL_USE_HISTORY -DMRL_USE_COMPLETE -DMRL_PRINT_ESC_OFF #-DMRL_DEBUG
+DEFS      := -DMRL_USE_HISTORY -DMRL_USE_COMPLETE #-DMRL_PRINT_ESC_OFF #-DMRL_DEBUG
 OPTIM     := -Os -fomit-frame-pointer
 WARN      := -Wall
 

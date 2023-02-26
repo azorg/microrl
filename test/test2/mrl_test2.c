@@ -36,9 +36,11 @@ struct {
   int size;
 } flash = {63, 2048};
 
+#ifdef MRL_USE_COMPLETE
 // array for comletion
 #define COMPL_NUM 10 // FIXME: magic 
 static const char *compl_world[COMPL_NUM + 1];
+#endif // MRL_USE_COMPLETE
 //-----------------------------------------------------------------------------
 extern cmd_t const cmd_tree[];
 //-----------------------------------------------------------------------------
@@ -76,7 +78,7 @@ static void fn_help(int argc, char* const argv[], const cmd_t *cmd)
 //-----------------------------------------------------------------------------
 static void fn_ver_mrl(int argc, char* const argv[], const cmd_t *cmd)
 {
-  printf("MicroRL version 2.0 (forked) argc=%i\r\n", argc);
+  printf("MicroRL version 2.1 (forked) argc=%i\r\n", argc);
 }
 //-----------------------------------------------------------------------------
 static void fn_ver_demo(int argc, char* const argv[], const cmd_t *cmd)
@@ -240,6 +242,7 @@ static void print(const char *str)
 static char get_char()
 {
   char ch;
+#ifndef MRL_ECHO_OFF
   struct termios oldt, newt;
 
   // canonical mode OFF
@@ -247,11 +250,14 @@ static char get_char()
   newt = oldt;
   newt.c_lflag &= ~(ICANON | ECHO);
   tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+#endif // !MRL_ECHO_OFF
   
   ch = getchar();
   
+#ifndef MRL_ECHO_OFF
   // canonical mode ON
   tcsetattr(STDIN_FILENO, TCSANOW, &oldt );
+#endif // !MRL_ECHO_OFF
 
   return ch;
 }
