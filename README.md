@@ -1,6 +1,7 @@
 MicroRL - read line library for small/embedded devices with basic VT100 support
 ===============================================================================
 This library forked from https://github.com/Helius/microrl
+and last version pulled to https://github.com/azorg/microrl
 
 ## 1. Description
 
@@ -95,7 +96,7 @@ void print(const char *str)
      'argv' arguments, so iterate through it and return set of complete
      variants. 
 
-* e) Look at "mrl_conf.h" file, for tune library for you requiring.
+* e) Look at `mrl_conf.h` file, for tune library for you requiring.
 
 * f) Now you just call `mrl_insert_char()` on each char received from
      input stream (USART, network, etc).
@@ -144,7 +145,7 @@ See example library usage in test folder.
 
  * [+] replace `u16bit_to_str()` to `mrl_uint2str()` - more traditional API
 
- * [+] add mrl_str2int() function as atoi() alternative
+ * [+] add `mrl_str2int()` function as atoi() alternative
 
  * [+] new unlimit (>256 bytes) history ring buffer
 
@@ -152,7 +153,7 @@ See example library usage in test folder.
 
  * [~] refactor sources, fix old bugs and add new :-)
 
- * [+] add MRL_ENDL_CR_LF config (one CR or one LF - in, CR+LF - out)
+ * [+] add `MRL_ENDL_CR_LF` config (one CR or one LF - in, CR+LF - out)
 
  * [-] auto detection end of line (CR/LF/CR+LF/LF+CR) 
 
